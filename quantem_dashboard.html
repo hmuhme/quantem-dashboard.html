@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Quantem — E-Commerce Operations Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1e2537;--bg4:#252d42;
+  --border:#2a3350;--border2:#334068;
+  --text:#e8eaf0;--text2:#8b93b0;--text3:#525d80;
+  --blue:#4a9eff;--blue2:#1e6fd9;--blue3:#0d3d80;
+  --green:#34d399;--green2:#059669;
+  --red:#f87171;--red2:#dc2626;
+  --amber:#fbbf24;--amber2:#d97706;
+  --purple:#a78bfa;--purple2:#7c3aed;
+  --teal:#2dd4bf;--teal2:#0d9488;
+  --radius:10px;--radius-lg:16px;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* HEADER */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:100}
+.logo{font-size:16px;font-weight:600;color:var(--text);letter-spacing:-.3px;white-space:nowrap}
+.logo span{color:var(--blue)}
+.header-spacer{flex:1}
+.status-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;white-space:nowrap}
+.sb-demo{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.25)}
+.sb-ok{background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.25)}
+.sb-loading{background:rgba(74,158,255,.12);color:var(--blue);border:1px solid rgba(74,158,255,.25)}
+.sb-err{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.25)}
+
+/* CONNECT BAR */
+.connect-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.connect-bar input{flex:1;min-width:220px;height:34px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:12px;padding:0 12px;outline:none}
+.connect-bar input:focus{border-color:var(--blue)}
+.connect-bar input::placeholder{color:var(--text3)}
+.btn{height:34px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border2)}
+.btn-primary{background:var(--blue2);color:#fff;border-color:var(--blue2)}
+.btn-primary:hover{background:var(--blue);border-color:var(--blue)}
+.btn-green{background:rgba(52,211,153,.15);color:var(--green);border-color:rgba(52,211,153,.3)}
+.btn-green:hover{background:rgba(52,211,153,.25)}
+.btn-amber{background:rgba(251,191,36,.15);color:var(--amber);border-color:rgba(251,191,36,.3)}
+.btn-amber:hover{background:rgba(251,191,36,.25)}
+.hint{font-size:11px;color:var(--text3);line-height:1.5}
+
+/* CONTROLS */
+.controls{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.brand-tab{height:30px;padding:0 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+.brand-tab:hover{border-color:var(--border2);color:var(--text)}
+.brand-tab.active{background:var(--blue2);color:#fff;border-color:var(--blue2)}
+.ctrl-sep{width:1px;height:20px;background:var(--border);margin:0 4px;flex-shrink:0}
+select{height:30px;padding:0 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;outline:none}
+select:focus{border-color:var(--blue)}
+.date-inputs{display:flex;align-items:center;gap:6px}
+.date-inputs input[type=date]{height:30px;padding:0 8px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-family:var(--mono);font-size:11px;outline:none;cursor:pointer}
+.date-inputs input[type=date]:focus{border-color:var(--blue)}
+.date-lbl{font-size:11px;color:var(--text3)}
+.filter-count{font-size:10px;color:var(--text3);padding:2px 8px;background:var(--bg3);border-radius:10px;border:1px solid var(--border)}
+
+/* NAV TABS */
+.nav-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:0;overflow-x:auto}
+.nav-tab{padding:12px 16px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.nav-tab:hover{color:var(--text2)}
+.nav-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* CONTENT */
+.content{padding:20px 24px;max-width:1400px}
+.view{display:none}
+.view.active{display:block}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;position:relative;overflow:hidden;transition:border-color .2s}
+.kpi:hover{border-color:var(--border2)}
+.kpi-label{font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:400;letter-spacing:.3px;text-transform:uppercase}
+.kpi-val{font-size:22px;font-weight:600;line-height:1;margin-bottom:5px;letter-spacing:-.5px}
+.kpi-sub{font-size:11px;color:var(--text3)}
+.kpi-up{color:var(--green)}
+.kpi-dn{color:var(--red)}
+.kpi-neu{color:var(--text2)}
+.kpi-accent{position:absolute;bottom:0;left:0;height:2px;width:40%;border-radius:0 2px 0 0}
+
+/* CARDS */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:14px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;overflow:hidden}
+.card-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:6px;letter-spacing:.3px;text-transform:uppercase}
+.card-title svg{width:14px;height:14px;opacity:.7}
+
+/* CHARTS */
+.chart-wrap{position:relative}
+
+/* TABLES */
+.tbl-scroll{overflow-x:auto;border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{text-align:left;padding:8px 10px;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;font-size:10px;text-transform:uppercase;letter-spacing:.4px;background:var(--bg3)}
+tbody td{padding:7px 10px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(255,255,255,.02)}
+td.num{text-align:right;font-family:var(--mono);font-size:11px}
+.badge{display:inline-block;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:500;font-family:var(--mono)}
+.b-green{background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.2)}
+.b-red{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.b-blue{background:rgba(74,158,255,.12);color:var(--blue);border:1px solid rgba(74,158,255,.2)}
+.b-amber{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.2)}
+.b-purple{background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.2)}
+.b-teal{background:rgba(45,212,191,.12);color:var(--teal);border:1px solid rgba(45,212,191,.2)}
+
+/* BARS */
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.bar-lbl{font-size:11px;color:var(--text2);width:90px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;background:var(--bg3);border-radius:3px;height:7px;overflow:hidden}
+.bar-fill{height:7px;border-radius:3px;transition:width .4s ease}
+.bar-val{font-size:10px;color:var(--text3);width:54px;flex-shrink:0;font-family:var(--mono)}
+
+/* LEGEND */
+.leg{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3)}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* FUNNEL */
+.funnel-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.funnel-bar{height:28px;display:flex;align-items:center;padding:0 10px;border-radius:6px;font-size:11px;font-weight:500;transition:width .4s}
+
+/* EXPORT ROW */
+.export-row{display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);flex-wrap:wrap}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px;color:var(--text3);font-size:12px}
+
+/* SECTION LABEL */
+.section-lbl{font-size:10px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;font-weight:500}
+
+/* SUMMARY STRIP */
+.summary-strip{background:linear-gradient(90deg,rgba(74,158,255,.08),rgba(45,212,191,.05));border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:16px;font-size:11px;color:var(--text3);line-height:1.7}
+.summary-strip strong{color:var(--text);font-weight:500}
+
+@media(max-width:768px){
+  .content{padding:12px}
+  .controls{padding:8px 12px}
+  .header{padding:0 12px}
+  .nav-bar{padding:0 12px}
+  .connect-bar{padding:8px 12px}
+}
+@media print{
+  .header,.connect-bar,.controls,.nav-bar,.export-row{display:none!important}
+  .view{display:block!important}
+  .content{padding:0}
+  body{background:#fff;color:#000}
+  .kpi,.card{background:#f9f9f9;border:1px solid #ddd}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Quantem <span>Ops</span></div>
+  <div style="font-size:11px;color:var(--text3)">E-Commerce Operations Dashboard</div>
+  <div class="header-spacer"></div>
+</div>
+
+<div class="connect-bar" style="flex-direction:column;align-items:stretch;gap:10px">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4a9eff" stroke-width="2" style="flex-shrink:0"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    <select id="sheetMode" onchange="toggleSheetMode()" style="height:30px;font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text2);padding:0 10px;font-family:var(--font)">
+      <option value="single">Mode: 1 Google Sheet with multiple tabs (recommended)</option>
+      <option value="multi">Mode: Separate Google Sheet file per brand</option>
+    </select>
+    <button class="btn" onclick="loadDemo()">Load demo</button>
+    <span class="status-badge sb-demo" id="statusBadge">Demo data</span>
+    <span style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="lastUpdated"></span>
+  </div>
+  <div id="singleSheetUI" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input type="text" id="sheetUrl" placeholder="Paste your Google Sheet URL — must have tabs: Match KSA, Match UAE, Feelin, Salfa, SKU" style="flex:1;min-width:260px;height:32px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:12px;padding:0 12px;font-family:var(--font);outline:none"/>
+    <button class="btn btn-primary" onclick="loadSheet()">Load all tabs</button>
+    <div class="hint">Tab names must be exactly: <strong>Match KSA &nbsp;·&nbsp; Match UAE &nbsp;·&nbsp; Feelin &nbsp;·&nbsp; Salfa &nbsp;·&nbsp; SKU</strong><br>File &gt; Share &gt; Anyone with link &gt; Viewer</div>
+  </div>
+  <div id="multiSheetUI" style="display:none;flex-direction:column;gap:6px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:6px">
+      <div style="display:flex;gap:6px;align-items:center"><span style="font-size:11px;color:var(--text2);width:80px;flex-shrink:0">Match KSA</span><input type="text" data-brand="match_ksa" class="multi-url" placeholder="Sheet URL for Match KSA…" style="flex:1;height:28px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:11px;padding:0 10px;font-family:var(--font);outline:none"/></div>
+      <div style="display:flex;gap:6px;align-items:center"><span style="font-size:11px;color:var(--text2);width:80px;flex-shrink:0">Match UAE</span><input type="text" data-brand="match_uae" class="multi-url" placeholder="Sheet URL for Match UAE…" style="flex:1;height:28px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:11px;padding:0 10px;font-family:var(--font);outline:none"/></div>
+      <div style="display:flex;gap:6px;align-items:center"><span style="font-size:11px;color:var(--text2);width:80px;flex-shrink:0">Feelin</span><input type="text" data-brand="feelin" class="multi-url" placeholder="Sheet URL for Feelin…" style="flex:1;height:28px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:11px;padding:0 10px;font-family:var(--font);outline:none"/></div>
+      <div style="display:flex;gap:6px;align-items:center"><span style="font-size:11px;color:var(--text2);width:80px;flex-shrink:0">Salfa</span><input type="text" data-brand="salfa" class="multi-url" placeholder="Sheet URL for Salfa…" style="flex:1;height:28px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:11px;padding:0 10px;font-family:var(--font);outline:none"/></div>
+      <div style="display:flex;gap:6px;align-items:center"><span style="font-size:11px;color:var(--text2);width:80px;flex-shrink:0">SKU data</span><input type="text" data-brand="sku" class="multi-url" placeholder="Sheet URL for SKU performance (optional)…" style="flex:1;height:28px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:11px;padding:0 10px;font-family:var(--font);outline:none"/></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="loadMultiSheets()">Load all sheets</button>
+      <div class="hint">Each file needs same column headers. Set each to "Anyone with link can view".</div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="brand-tab active" data-brand="match_ksa" onclick="setBrand(this)">Match KSA</div>
+  <div class="brand-tab" data-brand="match_uae" onclick="setBrand(this)">Match UAE</div>
+  <div class="brand-tab" data-brand="feelin" onclick="setBrand(this)">Feelin</div>
+  <div class="brand-tab" data-brand="salfa" onclick="setBrand(this)">Salfa</div>
+  <div class="brand-tab" data-brand="all" onclick="setBrand(this)">All brands</div>
+  <div class="ctrl-sep"></div>
+  <div class="date-inputs">
+    <span class="date-lbl">From</span>
+    <input type="date" id="dateFrom" onchange="applyFilters()"/>
+    <span class="date-lbl">To</span>
+    <input type="date" id="dateTo" onchange="applyFilters()"/>
+  </div>
+  <select id="quickDate" onchange="setQuickDate(this.value)">
+    <option value="">Custom range</option>
+    <option value="7">Last 7 days</option>
+    <option value="30" selected>Last 30 days</option>
+    <option value="60">Last 60 days</option>
+    <option value="90">Last 90 days</option>
+    <option value="mtd">This month</option>
+    <option value="all">All time</option>
+  </select>
+  <div class="ctrl-sep"></div>
+  <select id="catFilter" onchange="applyFilters()"><option value="">All categories</option></select>
+  <select id="cityFilter" onchange="applyFilters()"><option value="">All cities</option></select>
+  <select id="payFilter" onchange="applyFilters()"><option value="">All payments</option></select>
+  <select id="shipFilter" onchange="applyFilters()"><option value="">All couriers</option></select>
+  <select id="statusFilter" onchange="applyFilters()"><option value="">All statuses</option><option>Delivered</option><option>Returned</option><option>Cancelled</option></select>
+  <div class="filter-count" id="filterCount">0 orders</div>
+</div>
+
+<div class="nav-bar">
+  <div class="nav-tab active" data-view="exec" onclick="setView(this)">Executive summary</div>
+  <div class="nav-tab" data-view="ops" onclick="setView(this)">Operations</div>
+  <div class="nav-tab" data-view="sku" onclick="setView(this)">SKU & products</div>
+  <div class="nav-tab" data-view="logistics" onclick="setView(this)">Fulfillment & logistics</div>
+  <div class="nav-tab" data-view="geo" onclick="setView(this)">Geographic</div>
+  <div class="nav-tab" data-view="payments" onclick="setView(this)">Payments</div>
+</div>
+
+<div class="content">
+
+<!-- EXECUTIVE -->
+<div class="view active" id="view-exec">
+  <div id="summaryStrip" class="summary-strip"></div>
+  <div class="kpi-grid" id="kpiGrid"></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Revenue & orders trend</div>
+      <div class="leg" id="trendLeg"></div>
+      <div class="chart-wrap" style="height:200px"><canvas id="trendChart" aria-label="Revenue and orders trend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Order status breakdown</div>
+      <div class="leg" id="statusLeg"></div>
+      <div class="chart-wrap" style="height:200px"><canvas id="statusChart" aria-label="Order status donut"></canvas></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Revenue by payment mode</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="payRevChart" aria-label="Revenue by payment"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Orders by courier partner</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="courierExecChart" aria-label="Orders by courier"></canvas></div>
+    </div>
+  </div>
+  <div class="export-row">
+    <button class="btn btn-green" onclick="exportExcel()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Export to Excel
+    </button>
+    <button class="btn btn-amber" onclick="exportPDF()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Export to PDF
+    </button>
+    <button class="btn" onclick="exportCSV()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export CSV
+    </button>
+  </div>
+</div>
+
+<!-- OPERATIONS -->
+<div class="view" id="view-ops">
+  <div class="kpi-grid" id="opsKpi"></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Delivery funnel</div>
+      <div id="funnelViz"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">COD vs paid — performance</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="codChart" aria-label="COD vs paid chart"></canvas></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Daily order volume (last 30 days)</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="dailyChart" aria-label="Daily orders"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Cancellation reasons</div>
+      <div id="cancelReasons" style="margin-top:4px"></div>
+    </div>
+  </div>
+  <div class="export-row">
+    <button class="btn btn-green" onclick="exportExcel('ops')">Export Operations Excel</button>
+    <button class="btn btn-amber" onclick="exportPDF()">Export PDF</button>
+  </div>
+</div>
+
+<!-- SKU -->
+<div class="view" id="view-sku">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Top 10 SKUs by quantity sold</div>
+      <div class="tbl-scroll"><table id="skuTable"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Category performance</div>
+      <div class="tbl-scroll"><table id="catTable"></table></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">SKU net sales contribution — top 10</div>
+    <div class="chart-wrap" style="height:280px"><canvas id="skuBarChart" aria-label="SKU bar chart"></canvas></div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Bottom 10 SKUs — lowest quantity sold</div>
+    <div class="tbl-scroll"><table id="lowSkuTable"></table></div>
+  </div>
+  <div class="export-row">
+    <button class="btn btn-green" onclick="exportExcel('sku')">Export SKU Report Excel</button>
+    <button class="btn btn-amber" onclick="exportPDF()">Export PDF</button>
+  </div>
+</div>
+
+<!-- LOGISTICS -->
+<div class="view" id="view-logistics">
+  <div class="kpi-grid" id="logKpi"></div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Courier performance matrix — Omniful / shipping partners</div>
+    <div class="tbl-scroll"><table id="courierTable"></table></div>
+  </div>
+  <div class="grid3">
+    <div class="card">
+      <div class="card-title">Volume share</div>
+      <div class="leg" id="courierLeg"></div>
+      <div class="chart-wrap" style="height:160px"><canvas id="courierPie" aria-label="Courier volume share"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Delivery rate by courier</div>
+      <div id="courierDelivBars" style="margin-top:4px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Return rate by courier</div>
+      <div id="courierRetBars" style="margin-top:4px"></div>
+    </div>
+  </div>
+  <div class="export-row">
+    <button class="btn btn-green" onclick="exportExcel('logistics')">Export Logistics Excel</button>
+    <button class="btn btn-amber" onclick="exportPDF()">Export PDF</button>
+  </div>
+</div>
+
+<!-- GEO -->
+<div class="view" id="view-geo">
+  <div class="kpi-grid" id="geoKpi"></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Top 10 cities — orders</div>
+      <div id="cityOrderBars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 10 cities — revenue</div>
+      <div id="cityRevBars"></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Delivery rate by city (min 5 orders)</div>
+      <div id="cityDelivBars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Return rate by city (min 5 orders)</div>
+      <div id="cityRetBars"></div>
+    </div>
+  </div>
+  <div class="export-row">
+    <button class="btn btn-green" onclick="exportExcel('geo')">Export Geographic Excel</button>
+    <button class="btn btn-amber" onclick="exportPDF()">Export PDF</button>
+  </div>
+</div>
+
+<!-- PAYMENTS -->
+<div class="view" id="view-payments">
+  <div class="kpi-grid" id="payKpi"></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Orders by payment mode</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="payOrderChart" aria-label="Orders by payment mode"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Revenue by payment mode</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="payRevChart2" aria-label="Revenue by payment mode"></canvas></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Payment mode performance matrix</div>
+    <div class="tbl-scroll"><table id="payTable"></table></div>
+  </div>
+  <div class="export-row">
+    <button class="btn btn-green" onclick="exportExcel('payments')">Export Payments Excel</button>
+    <button class="btn btn-amber" onclick="exportPDF()">Export PDF</button>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+// ─── GLOBALS ───────────────────────────────────────────────
+const PAL=['#4a9eff','#34d399','#f87171','#fbbf24','#a78bfa','#2dd4bf','#fb923c','#e879f9'];
+const BRAND_LABELS={match_ksa:'Match KSA',match_uae:'Match UAE',feelin:'Feelin',salfa:'Salfa',all:'All brands'};
+let RAW={};
+let FILTERED=[];
+let activeBrand='match_ksa';
+let activeView='exec';
+let charts={};
+
+// ─── UTILS ─────────────────────────────────────────────────
+const fmtN=n=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(Math.round(n));
+const fmtSAR=n=>'SAR '+fmtN(n);
+const ca=(h,a)=>{const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return `rgba(${r},${g},${b},${a})`};
+const dc=id=>{if(charts[id]){charts[id].destroy();delete charts[id]}};
+const today=()=>new Date().toISOString().slice(0,10);
+const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)};
+
+function getOrdStatus(o){
+  const s=(o['ORDER STATUS']||'').toLowerCase();
+  const ds=(o['DELIVERY STATUS']||'').toLowerCase();
+  if(s.includes('deliver')||ds.includes('deliver'))return 'Delivered';
+  if(s.includes('return'))return 'Returned';
+  if(s.includes('cancel'))return 'Cancelled';
+  return 'In Transit';
+}
+
+function calcKpis(orders){
+  const total=orders.length;
+  const rev=orders.reduce((s,o)=>s+(parseFloat(o['ORDER AMOUNT'])||0),0);
+  const delivered=orders.filter(o=>getOrdStatus(o)==='Delivered').length;
+  const returned=orders.filter(o=>getOrdStatus(o)==='Returned').length;
+  const cancelled=orders.filter(o=>getOrdStatus(o)==='Cancelled').length;
+  const cod=orders.filter(o=>(o['PAYMENT MODE']||'').toLowerCase().includes('cod')).length;
+  const qty=orders.reduce((s,o)=>s+(parseInt(o['TOTAL ORDERED QUANTITY'])||1),0);
+  const ship=orders.reduce((s,o)=>s+(parseFloat(o['SHIPPING COST'])||0),0);
+  const delivRev=orders.filter(o=>getOrdStatus(o)==='Delivered').reduce((s,o)=>s+(parseFloat(o['ORDER AMOUNT'])||0),0);
+  return{total,rev,delivered,returned,cancelled,cod,qty,ship,delivRev,
+    delivRate:total?delivered/total*100:0,
+    retRate:total?returned/total*100:0,
+    cancelRate:total?cancelled/total*100:0,
+    aov:total?rev/total:0,
+    upt:total?qty/total:0,
+    dsr:rev?delivRev/rev*100:0,
+    codRate:total?cod/total*100:0,
+    netSales:delivRev
+  };
+}
+
+// ─── BRAND / FILTER ─────────────────────────────────────────
+function getOrders(brand){
+  if(brand==='all') return Object.values(RAW).flatMap(x=>x.orders||[]);
+  return RAW[brand]?.orders||[];
+}
+function getSkus(brand){
+  if(brand==='all') return Object.values(RAW).flatMap(x=>x.skus||[]);
+  return RAW[brand]?.skus||[];
+}
+
+function applyFilters(){
+  let orders=getOrders(activeBrand);
+  const from=document.getElementById('dateFrom').value;
+  const to=document.getElementById('dateTo').value;
+  const cat=document.getElementById('catFilter').value;
+  const city=document.getElementById('cityFilter').value;
+  const pay=document.getElementById('payFilter').value;
+  const ship=document.getElementById('shipFilter').value;
+  const status=document.getElementById('statusFilter').value;
+  if(from) orders=orders.filter(o=>{const d=(o['ORDER Date']||o['SALES CHANNEL CREATED AT']||'').slice(0,10);return d>=from});
+  if(to) orders=orders.filter(o=>{const d=(o['ORDER Date']||o['SALES CHANNEL CREATED AT']||'').slice(0,10);return d<=to});
+  if(pay) orders=orders.filter(o=>(o['PAYMENT MODE']||'').toLowerCase().includes(pay.toLowerCase()));
+  if(ship) orders=orders.filter(o=>(o['COURIER PARTNER']||'')=== ship);
+  if(city) orders=orders.filter(o=>(o['SYSTEM DESTINATION CITY']||o['DESTINATION CITY']||'')===city);
+  if(status) orders=orders.filter(o=>getOrdStatus(o)===status);
+  FILTERED=orders;
+  document.getElementById('filterCount').textContent=orders.length.toLocaleString()+' orders';
+  renderCurrentView();
+}
+
+function setBrand(el){
+  document.querySelectorAll('.brand-tab').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  activeBrand=el.dataset.brand;
+  applyFilters();
+}
+
+function setView(el){
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  activeView=el.dataset.view;
+  document.getElementById('view-'+activeView).classList.add('active');
+  renderCurrentView();
+}
+
+function setQuickDate(val){
+  const from=document.getElementById('dateFrom');
+  const to=document.getElementById('dateTo');
+  if(val==='all'){from.value='';to.value='';}
+  else if(val==='mtd'){const d=new Date();from.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';to.value=today();}
+  else if(val){from.value=daysAgo(parseInt(val));to.value=today();}
+  applyFilters();
+}
+
+function populateFilters(allOrders){
+  const cities=[...new Set(allOrders.map(o=>o['SYSTEM DESTINATION CITY']||o['DESTINATION CITY']).filter(Boolean))].sort();
+  const couriers=[...new Set(allOrders.map(o=>o['COURIER PARTNER']).filter(Boolean))].sort();
+  const pays=[...new Set(allOrders.map(o=>o['PAYMENT MODE']).filter(Boolean))].sort();
+  const cats=[...new Set(getSkus('all').map(s=>s['Category']).filter(Boolean))].sort();
+  const se=(id,vals)=>{const el=document.getElementById(id);const cur=el.value;el.innerHTML='<option value="">All '+id.replace('Filter','')+'s</option>'+vals.map(v=>`<option ${v===cur?'selected':''}>${v}</option>`).join('')};
+  se('cityFilter',cities);se('shipFilter',couriers);se('payFilter',pays);se('catFilter',cats);
+}
+
+// ─── KPI CARDS ──────────────────────────────────────────────
+function kpiCards(elId,kpis){
+  document.getElementById(elId).innerHTML=kpis.map(k=>`
+    <div class="kpi">
+      <div class="kpi-label">${k.l}</div>
+      <div class="kpi-val" style="color:${k.vc||'var(--text)'}">${k.v}</div>
+      <div class="kpi-sub ${k.cls||'kpi-neu'}">${k.s||''}</div>
+      <div class="kpi-accent" style="background:${k.a||'#4a9eff'}"></div>
+    </div>`).join('');
+}
+
+// ─── BAR ROWS ───────────────────────────────────────────────
+function barRows(elId,items,valFn,col){
+  const mx=Math.max(...items.map(valFn),1);
+  document.getElementById(elId).innerHTML=items.map(it=>`
+    <div class="bar-row">
+      <span class="bar-lbl" title="${it.name}">${it.name}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(valFn(it)/mx*100)}%;background:${col}"></div></div>
+      <span class="bar-val">${typeof valFn(it)==='number'&&valFn(it)>999?fmtSAR(valFn(it)):(valFn(it).toFixed?valFn(it).toFixed(1)+'%':valFn(it))}</span>
+    </div>`).join('');
+}
+
+// ─── RENDER EXECUTIVE ───────────────────────────────────────
+function renderExec(){
+  const k=calcKpis(FILTERED);
+  document.getElementById('summaryStrip').innerHTML=`
+    Showing <strong>${FILTERED.length.toLocaleString()} orders</strong> for <strong>${BRAND_LABELS[activeBrand]}</strong> —
+    Total revenue <strong>${fmtSAR(k.rev)}</strong> · Delivery rate <strong>${k.delivRate.toFixed(1)}%</strong> ·
+    Return rate <strong>${k.retRate.toFixed(1)}%</strong> · Net sales <strong>${fmtSAR(k.netSales)}</strong> · DSR <strong>${k.dsr.toFixed(1)}%</strong>`;
+  kpiCards('kpiGrid',[
+    {l:'Total orders',v:k.total.toLocaleString(),s:'Filtered period',a:'#4a9eff'},
+    {l:'Total revenue',v:fmtSAR(k.rev),s:'Gross order value',a:'#34d399'},
+    {l:'AOV',v:'SAR '+Math.round(k.aov),s:'Avg order value',a:'#4a9eff'},
+    {l:'UPT / basket',v:k.upt.toFixed(1),s:'Units per transaction',a:'#fbbf24'},
+    {l:'Delivery rate',v:k.delivRate.toFixed(1)+'%',s:k.delivered.toLocaleString()+' delivered',cls:'kpi-up',a:'#34d399'},
+    {l:'Return rate',v:k.retRate.toFixed(1)+'%',s:k.returned.toLocaleString()+' returned',cls:'kpi-dn',a:'#f87171'},
+    {l:'Cancel rate',v:k.cancelRate.toFixed(1)+'%',s:k.cancelled.toLocaleString()+' cancelled',cls:'kpi-dn',a:'#f87171'},
+    {l:'DSR',v:k.dsr.toFixed(1)+'%',s:'Delivered sales rate',cls:'kpi-up',a:'#a78bfa'},
+    {l:'Net sales',v:fmtSAR(k.netSales),s:'After returns',a:'#a78bfa'},
+    {l:'COD rate',v:k.codRate.toFixed(1)+'%',s:k.cod+' COD orders',a:'#fbbf24'},
+    {l:'Paid delivery',v:(100-k.codRate).toFixed(1)+'%',s:'Digital payment rate',a:'#2dd4bf'},
+    {l:'Total returned',v:k.returned.toLocaleString(),s:'Return orders',cls:'kpi-dn',a:'#f87171'},
+  ]);
+
+  const dateMap={};
+  FILTERED.forEach(o=>{const d=(o['ORDER Date']||o['SALES CHANNEL CREATED AT']||'').slice(0,10);if(d){if(!dateMap[d])dateMap[d]={rev:0,cnt:0};dateMap[d].rev+=parseFloat(o['ORDER AMOUNT'])||0;dateMap[d].cnt++}});
+  const dates=Object.keys(dateMap).sort().slice(-60);
+  document.getElementById('trendLeg').innerHTML=`<div class="leg-item"><div class="leg-dot" style="background:#4a9eff"></div>Revenue (SAR)</div><div class="leg-item"><div class="leg-dot" style="background:#34d399;border-style:dashed"></div>Orders</div>`;
+  dc('trendChart');
+  charts.trendChart=new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:dates.map(d=>d.slice(5)),datasets:[{label:'Revenue',data:dates.map(d=>Math.round(dateMap[d].rev)),borderColor:'#4a9eff',backgroundColor:ca('#4a9eff',.08),tension:.4,yAxisID:'y',pointRadius:2,borderWidth:2},{label:'Orders',data:dates.map(d=>dateMap[d].cnt),borderColor:'#34d399',borderDash:[4,3],backgroundColor:'transparent',tension:.4,yAxisID:'y1',pointRadius:2,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9},maxTicksLimit:12,maxRotation:45},grid:{color:'rgba(255,255,255,.04)'}},y:{position:'left',ticks:{color:'#525d80',font:{size:9},callback:v=>fmtSAR(v)},grid:{color:'rgba(255,255,255,.04)'}},y1:{position:'right',ticks:{color:'#525d80',font:{size:9}},grid:{drawOnChartArea:false}}}}});
+
+  const sMap={Delivered:0,Returned:0,Cancelled:0,'In Transit':0};
+  FILTERED.forEach(o=>sMap[getOrdStatus(o)]++);
+  const sK=Object.keys(sMap),sV=Object.values(sMap);
+  document.getElementById('statusLeg').innerHTML=sK.map((l,i)=>`<div class="leg-item"><div class="leg-dot" style="background:${PAL[i]}"></div>${l} ${sV[i].toLocaleString()}</div>`).join('');
+  dc('statusChart');
+  charts.statusChart=new Chart(document.getElementById('statusChart'),{type:'doughnut',data:{labels:sK,datasets:[{data:sV,backgroundColor:PAL.slice(0,4),borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'62%'}});
+
+  const pmRev={};FILTERED.forEach(o=>{const pm=o['PAYMENT MODE']||'Unknown';pmRev[pm]=(pmRev[pm]||0)+(parseFloat(o['ORDER AMOUNT'])||0)});
+  const pmK=Object.keys(pmRev);
+  dc('payRevChart');
+  charts.payRevChart=new Chart(document.getElementById('payRevChart'),{type:'bar',data:{labels:pmK,datasets:[{data:pmK.map(k=>Math.round(pmRev[k])),backgroundColor:PAL.slice(0,pmK.length),borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9}}},y:{ticks:{color:'#525d80',font:{size:9},callback:v=>fmtSAR(v)},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+  const cpCnt={};FILTERED.forEach(o=>{const cp=o['COURIER PARTNER']||'Unknown';cpCnt[cp]=(cpCnt[cp]||0)+1});
+  const cpK=Object.keys(cpCnt);
+  dc('courierExecChart');
+  charts.courierExecChart=new Chart(document.getElementById('courierExecChart'),{type:'bar',data:{labels:cpK,datasets:[{data:cpK.map(k=>cpCnt[k]),backgroundColor:PAL.slice(0,cpK.length),borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9}}},y:{ticks:{color:'#525d80',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+}
+
+// ─── RENDER OPS ─────────────────────────────────────────────
+function renderOps(){
+  const k=calcKpis(FILTERED);
+  kpiCards('opsKpi',[
+    {l:'Delivered',v:k.delivered.toLocaleString(),s:k.delivRate.toFixed(1)+'% rate',cls:'kpi-up',a:'#34d399'},
+    {l:'Returned',v:k.returned.toLocaleString(),s:k.retRate.toFixed(1)+'% rate',cls:'kpi-dn',a:'#f87171'},
+    {l:'Cancelled',v:k.cancelled.toLocaleString(),s:k.cancelRate.toFixed(1)+'% rate',cls:'kpi-dn',a:'#f87171'},
+    {l:'In transit',v:(k.total-k.delivered-k.returned-k.cancelled).toLocaleString(),s:'Active shipments',a:'#fbbf24'},
+    {l:'DSR',v:k.dsr.toFixed(1)+'%',s:'Delivered sales rate',cls:'kpi-up',a:'#a78bfa'},
+    {l:'Net sales',v:fmtSAR(k.netSales),s:'After returns',a:'#4a9eff'},
+  ]);
+
+  const tot=k.total||1;
+  const shipped=k.total-k.cancelled;
+  const outDel=Math.round(shipped*.95);
+  [{l:'Total orders',n:k.total,c:'#4a9eff'},{l:'Shipped',n:shipped,c:'#2dd4bf'},{l:'Out for delivery',n:outDel,c:'#34d399'},{l:'Delivered',n:k.delivered,c:'#059669'}].forEach(f=>{
+    document.getElementById('funnelViz').innerHTML=([{l:'Total orders',n:k.total,c:'#4a9eff'},{l:'Shipped',n:shipped,c:'#2dd4bf'},{l:'Out for delivery',n:outDel,c:'#34d399'},{l:'Delivered',n:k.delivered,c:'#059669'}]).map(f=>{
+      const p=Math.round(f.n/tot*100);
+      return `<div class="funnel-row"><div class="funnel-bar" style="width:${Math.max(p,18)}%;background:${ca(f.c,.18)};color:${f.c}">${f.l}: <strong>${f.n.toLocaleString()}</strong></div><span style="font-size:10px;color:#525d80;font-family:var(--mono)">${p}%</span></div>`;
+    }).join('');
+  });
+
+  const codO=FILTERED.filter(o=>(o['PAYMENT MODE']||'').toLowerCase().includes('cod'));
+  const paidO=FILTERED.filter(o=>!(o['PAYMENT MODE']||'').toLowerCase().includes('cod'));
+  const ck=calcKpis(codO),pk=calcKpis(paidO);
+  dc('codChart');
+  charts.codChart=new Chart(document.getElementById('codChart'),{type:'bar',data:{labels:['Delivery %','Return %','Cancel %'],datasets:[{label:'COD',data:[+ck.delivRate.toFixed(1),+ck.retRate.toFixed(1),+ck.cancelRate.toFixed(1)],backgroundColor:ca('#fbbf24',.6),borderWidth:0,borderRadius:3},{label:'Paid',data:[+pk.delivRate.toFixed(1),+pk.retRate.toFixed(1),+pk.cancelRate.toFixed(1)],backgroundColor:ca('#34d399',.6),borderWidth:0,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b93b0',font:{size:10},boxWidth:10}}},scales:{x:{ticks:{color:'#525d80',font:{size:9}}},y:{ticks:{color:'#525d80',font:{size:9},callback:v=>v+'%'},max:100,grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+  const dMap={};FILTERED.forEach(o=>{const d=(o['ORDER Date']||o['SALES CHANNEL CREATED AT']||'').slice(0,10);if(d){dMap[d]=(dMap[d]||0)+1}});
+  const dd=Object.keys(dMap).sort().slice(-30);
+  dc('dailyChart');
+  charts.dailyChart=new Chart(document.getElementById('dailyChart'),{type:'bar',data:{labels:dd.map(d=>d.slice(5)),datasets:[{data:dd.map(d=>dMap[d]||0),backgroundColor:ca('#4a9eff',.6),borderWidth:0,borderRadius:3,hoverBackgroundColor:'#4a9eff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9},maxRotation:45,autoSkip:true,maxTicksLimit:15}},y:{ticks:{color:'#525d80',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+  const crMap={};FILTERED.filter(o=>getOrdStatus(o)==='Cancelled').forEach(o=>{const r=o['ORDER CANCELLATION REASON']||'Not specified';crMap[r]=(crMap[r]||0)+1});
+  const crTop=Object.entries(crMap).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  const crMx=crTop[0]?crTop[0][1]:1;
+  document.getElementById('cancelReasons').innerHTML=crTop.length?crTop.map(([r,n])=>`<div class="bar-row"><span class="bar-lbl" title="${r}">${r.slice(0,20)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/crMx*100)}%;background:#f87171"></div></div><span class="bar-val">${n}</span></div>`).join(''):'<div class="empty">No cancellations in selected period</div>';
+}
+
+// ─── RENDER SKU ──────────────────────────────────────────────
+function renderSKU(){
+  const skus=getSkus(activeBrand);
+  let skuRows=[];
+  if(skus.length){
+    const m={};
+    skus.forEach(s=>{
+      const k=s['Main Sku']||s['Item SKU']||'?';
+      if(!m[k])m[k]={sku:k,name:s['Item Name']||k,cat:s['Category']||'-',price:parseFloat(s['Item Selling Price'])||0,qty:0,gross:0,net:0,disc:0,tax:0};
+      m[k].qty+=parseInt(s[' TTL Qty Sold ']||s['TTL Qty Sold']||0)||0;
+      m[k].gross+=parseFloat(s[' TTL_gross_sales ']||s['TTL_gross_sales']||0)||0;
+      m[k].net+=parseFloat(s[' net_sale ']||s['net_sale']||0)||0;
+      m[k].disc+=parseFloat(s[' total_discount ']||s['total_discount']||0)||0;
+      m[k].tax+=parseFloat(s[' total_tax ']||s['total_tax']||0)||0;
+    });
+    skuRows=Object.values(m).sort((a,b)=>b.qty-a.qty);
+  } else {
+    const m={};
+    FILTERED.forEach(o=>{const k='Orders';if(!m[k])m[k]={sku:'-',name:'No SKU tab loaded',cat:'-',qty:0,gross:0,net:0,disc:0};m[k].qty+=(parseInt(o['TOTAL ORDERED QUANTITY'])||1);m[k].gross+=(parseFloat(o['ORDER AMOUNT'])||0);m[k].net+=(parseFloat(o['ORDER AMOUNT'])||0)});
+    skuRows=Object.values(m);
+  }
+  const top10=skuRows.slice(0,10);
+  const bot10=skuRows.slice(-10).reverse();
+
+  document.getElementById('skuTable').innerHTML=`<thead><tr><th>SKU</th><th>Product name</th><th>Category</th><th>Price</th><th class="num">Qty sold</th><th class="num">Gross sales</th><th class="num">Discount</th><th class="num">Net sales</th></tr></thead><tbody>`+
+    top10.map((s,i)=>`<tr><td><span class="badge b-blue">${s.sku}</span></td><td>${s.name}</td><td>${s.cat}</td><td class="num">SAR ${s.price}</td><td class="num">${s.qty.toLocaleString()}</td><td class="num">${fmtSAR(s.gross)}</td><td class="num">${fmtSAR(s.disc)}</td><td class="num"><strong>${fmtSAR(s.net)}</strong></td></tr>`).join('')+'</tbody>';
+
+  const catM={};skuRows.forEach(s=>{const c=s.cat;if(!catM[c])catM[c]={cat:c,qty:0,gross:0,net:0,disc:0,cnt:0};catM[c].qty+=s.qty;catM[c].gross+=s.gross;catM[c].net+=s.net;catM[c].disc+=s.disc;catM[c].cnt++});
+  const catR=Object.values(catM).sort((a,b)=>b.net-a.net);
+  document.getElementById('catTable').innerHTML=`<thead><tr><th>Category</th><th class="num">SKUs</th><th class="num">Qty sold</th><th class="num">Net sales</th><th class="num">Avg price</th></tr></thead><tbody>`+
+    catR.map(c=>`<tr><td>${c.cat}</td><td class="num">${c.cnt}</td><td class="num">${c.qty.toLocaleString()}</td><td class="num">${fmtSAR(c.net)}</td><td class="num">SAR ${c.qty>0?Math.round(c.net/c.qty):0}</td></tr>`).join('')+'</tbody>';
+
+  dc('skuBarChart');
+  charts.skuBarChart=new Chart(document.getElementById('skuBarChart'),{type:'bar',data:{labels:top10.map(s=>s.name.length>18?s.name.slice(0,18)+'…':s.name),datasets:[{data:top10.map(s=>Math.round(s.net)),backgroundColor:PAL.slice(0,top10.length),borderWidth:0,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9},callback:v=>fmtSAR(v)},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#8b93b0',font:{size:9}}}}}});
+
+  document.getElementById('lowSkuTable').innerHTML=`<thead><tr><th>SKU</th><th>Product name</th><th>Category</th><th class="num">Qty sold</th><th class="num">Gross</th><th class="num">Net sales</th></tr></thead><tbody>`+
+    bot10.map(s=>`<tr><td><span class="badge b-amber">${s.sku}</span></td><td>${s.name}</td><td>${s.cat}</td><td class="num">${s.qty.toLocaleString()}</td><td class="num">${fmtSAR(s.gross)}</td><td class="num">${fmtSAR(s.net)}</td></tr>`).join('')+'</tbody>';
+}
+
+// ─── RENDER LOGISTICS ───────────────────────────────────────
+function renderLogistics(){
+  const k=calcKpis(FILTERED);
+  kpiCards('logKpi',[
+    {l:'Delivery rate',v:k.delivRate.toFixed(1)+'%',s:'All couriers',cls:'kpi-up',a:'#34d399'},
+    {l:'Return rate',v:k.retRate.toFixed(1)+'%',s:'All couriers',cls:'kpi-dn',a:'#f87171'},
+    {l:'Cancel rate',v:k.cancelRate.toFixed(1)+'%',s:'All couriers',cls:'kpi-dn',a:'#f87171'},
+    {l:'Total shipped',v:(k.total-k.cancelled).toLocaleString(),s:'Excl. cancelled',a:'#4a9eff'},
+    {l:'Total weight',v:fmtN(k.ship)+' SAR',s:'Total shipping cost',a:'#2dd4bf'},
+  ]);
+
+  const cpM={};
+  FILTERED.forEach(o=>{
+    const cp=o['COURIER PARTNER']||'Unknown';
+    if(!cpM[cp])cpM[cp]={name:cp,total:0,del:0,ret:0,can:0,wt:0,shipCost:0};
+    cpM[cp].total++;
+    const st=getOrdStatus(o);
+    if(st==='Delivered')cpM[cp].del++;
+    if(st==='Returned')cpM[cp].ret++;
+    if(st==='Cancelled')cpM[cp].can++;
+    cpM[cp].wt+=parseFloat(o['SHIPMENT WEIGHT']||0);
+    cpM[cp].shipCost+=parseFloat(o['SHIPPING COST']||0);
+  });
+  const cpR=Object.values(cpM).sort((a,b)=>b.total-a.total);
+
+  document.getElementById('courierTable').innerHTML=`<thead><tr><th>Courier</th><th class="num">Orders</th><th class="num">Delivered</th><th class="num">Delivery %</th><th class="num">Returned</th><th class="num">Return %</th><th class="num">Cancelled</th><th class="num">Cancel %</th><th class="num">Ship cost</th><th class="num">Avg weight</th></tr></thead><tbody>`+
+    cpR.map(c=>`<tr>
+      <td><strong>${c.name}</strong></td>
+      <td class="num">${c.total.toLocaleString()}</td>
+      <td class="num">${c.del.toLocaleString()}</td>
+      <td class="num"><span class="badge ${c.total&&c.del/c.total>.7?'b-green':'b-amber'}">${c.total?(c.del/c.total*100).toFixed(1)+'%':'–'}</span></td>
+      <td class="num">${c.ret.toLocaleString()}</td>
+      <td class="num"><span class="badge ${c.total&&c.ret/c.total>.15?'b-red':'b-green'}">${c.total?(c.ret/c.total*100).toFixed(1)+'%':'–'}</span></td>
+      <td class="num">${c.can.toLocaleString()}</td>
+      <td class="num">${c.total?(c.can/c.total*100).toFixed(1)+'%':'–'}</td>
+      <td class="num">${fmtSAR(c.shipCost)}</td>
+      <td class="num">${c.total?(c.wt/c.total).toFixed(2)+' kg':'–'}</td>
+    </tr>`).join('')+'</tbody>';
+
+  document.getElementById('courierLeg').innerHTML=cpR.slice(0,5).map((c,i)=>`<div class="leg-item"><div class="leg-dot" style="background:${PAL[i]}"></div>${c.name} ${c.total.toLocaleString()}</div>`).join('');
+  dc('courierPie');
+  charts.courierPie=new Chart(document.getElementById('courierPie'),{type:'doughnut',data:{labels:cpR.slice(0,6).map(c=>c.name),datasets:[{data:cpR.slice(0,6).map(c=>c.total),backgroundColor:PAL.slice(0,6),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'58%'}});
+
+  const mxT=cpR[0]?cpR[0].total:1;
+  document.getElementById('courierDelivBars').innerHTML=cpR.map(c=>{const r=c.total?c.del/c.total*100:0;return `<div class="bar-row"><span class="bar-lbl">${c.name}</span><div class="bar-track"><div class="bar-fill" style="width:${r}%;background:#34d399"></div></div><span class="bar-val">${r.toFixed(1)}%</span></div>`}).join('');
+  document.getElementById('courierRetBars').innerHTML=cpR.map(c=>{const r=c.total?c.ret/c.total*100:0;return `<div class="bar-row"><span class="bar-lbl">${c.name}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(r*4,100)}%;background:#f87171"></div></div><span class="bar-val">${r.toFixed(1)}%</span></div>`}).join('');
+}
+
+// ─── RENDER GEO ─────────────────────────────────────────────
+function renderGeo(){
+  const cityM={};
+  FILTERED.forEach(o=>{
+    const c=o['SYSTEM DESTINATION CITY']||o['DESTINATION CITY']||'Unknown';
+    if(!cityM[c])cityM[c]={name:c,orders:0,rev:0,del:0,ret:0};
+    cityM[c].orders++;cityM[c].rev+=parseFloat(o['ORDER AMOUNT'])||0;
+    const st=getOrdStatus(o);
+    if(st==='Delivered')cityM[c].del++;
+    if(st==='Returned')cityM[c].ret++;
+  });
+  const byCnt=Object.values(cityM).sort((a,b)=>b.orders-a.orders).slice(0,10);
+  const byRev=Object.values(cityM).sort((a,b)=>b.rev-a.rev).slice(0,10);
+  const byDel=Object.values(cityM).filter(c=>c.orders>=5).sort((a,b)=>(b.del/b.orders)-(a.del/a.orders)).slice(0,10);
+  const byRet=Object.values(cityM).filter(c=>c.orders>=5).sort((a,b)=>(a.ret/a.orders)-(b.ret/b.orders)).slice(0,10);
+  const mxO=byCnt[0]?.orders||1,mxR=byRev[0]?.rev||1;
+
+  kpiCards('geoKpi',[
+    {l:'Active cities',v:Object.keys(cityM).length,s:'With orders in period',a:'#4a9eff'},
+    {l:'Top city (orders)',v:byCnt[0]?.name||'-',s:(byCnt[0]?.orders||0).toLocaleString()+' orders',cls:'kpi-up',a:'#34d399'},
+    {l:'Top city (revenue)',v:byRev[0]?.name||'-',s:fmtSAR(byRev[0]?.rev||0),cls:'kpi-up',a:'#a78bfa'},
+    {l:'Best delivery city',v:byDel[0]?.name||'-',s:byDel[0]?(byDel[0].del/byDel[0].orders*100).toFixed(1)+'%':'-',cls:'kpi-up',a:'#2dd4bf'},
+  ]);
+
+  document.getElementById('cityOrderBars').innerHTML=byCnt.map(c=>`<div class="bar-row"><span class="bar-lbl">${c.name}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(c.orders/mxO*100)}%;background:#4a9eff"></div></div><span class="bar-val">${c.orders.toLocaleString()}</span></div>`).join('');
+  document.getElementById('cityRevBars').innerHTML=byRev.map(c=>`<div class="bar-row"><span class="bar-lbl">${c.name}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(c.rev/mxR*100)}%;background:#a78bfa"></div></div><span class="bar-val">${fmtSAR(c.rev)}</span></div>`).join('');
+  document.getElementById('cityDelivBars').innerHTML=byDel.map(c=>{const r=c.del/c.orders*100;return `<div class="bar-row"><span class="bar-lbl">${c.name}</span><div class="bar-track"><div class="bar-fill" style="width:${r}%;background:#34d399"></div></div><span class="bar-val">${r.toFixed(1)}%</span></div>`}).join('');
+  document.getElementById('cityRetBars').innerHTML=byRet.map(c=>{const r=c.ret/c.orders*100;return `<div class="bar-row"><span class="bar-lbl">${c.name}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(r*4,100)}%;background:#f87171"></div></div><span class="bar-val">${r.toFixed(1)}%</span></div>`}).join('');
+}
+
+// ─── RENDER PAYMENTS ────────────────────────────────────────
+function renderPayments(){
+  const pmM={};
+  FILTERED.forEach(o=>{
+    const pm=o['PAYMENT MODE']||'Unknown';
+    if(!pmM[pm])pmM[pm]={name:pm,orders:0,rev:0,del:0,ret:0};
+    pmM[pm].orders++;pmM[pm].rev+=parseFloat(o['ORDER AMOUNT'])||0;
+    const st=getOrdStatus(o);
+    if(st==='Delivered')pmM[pm].del++;
+    if(st==='Returned')pmM[pm].ret++;
+  });
+  const pmR=Object.values(pmM).sort((a,b)=>b.orders-a.orders);
+  const tot=FILTERED.length||1,totRev=FILTERED.reduce((s,o)=>s+(parseFloat(o['ORDER AMOUNT'])||0),0)||1;
+  const codRow=pmR.find(p=>p.name.toLowerCase().includes('cod'));
+
+  kpiCards('payKpi',[
+    {l:'Payment modes',v:pmR.length,s:'Active in period',a:'#4a9eff'},
+    {l:'COD orders',v:(codRow?.orders||0).toLocaleString(),s:(codRow?(codRow.orders/tot*100).toFixed(1):0)+'% of orders',a:'#fbbf24'},
+    {l:'COD revenue',v:fmtSAR(codRow?.rev||0),s:(codRow?(codRow.rev/totRev*100).toFixed(1):0)+'% of revenue',a:'#fbbf24'},
+    {l:'Digital payment orders',v:(tot-(codRow?.orders||0)).toLocaleString(),s:(100-(codRow?(codRow.orders/tot*100):0)).toFixed(1)+'% of orders',cls:'kpi-up',a:'#34d399'},
+  ]);
+
+  dc('payOrderChart');dc('payRevChart2');
+  charts.payOrderChart=new Chart(document.getElementById('payOrderChart'),{type:'bar',data:{labels:pmR.map(p=>p.name),datasets:[{data:pmR.map(p=>p.orders),backgroundColor:PAL.slice(0,pmR.length),borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9}}},y:{ticks:{color:'#525d80',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+  charts.payRevChart2=new Chart(document.getElementById('payRevChart2'),{type:'bar',data:{labels:pmR.map(p=>p.name),datasets:[{data:pmR.map(p=>Math.round(p.rev)),backgroundColor:PAL.slice(0,pmR.length),borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9}}},y:{ticks:{color:'#525d80',font:{size:9},callback:v=>fmtSAR(v)},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+  document.getElementById('payTable').innerHTML=`<thead><tr><th>Payment mode</th><th class="num">Orders</th><th class="num">Revenue</th><th class="num">Delivery %</th><th class="num">Return %</th><th class="num">Order share</th><th class="num">Rev share</th></tr></thead><tbody>`+
+    pmR.map(p=>`<tr><td><strong>${p.name}</strong></td><td class="num">${p.orders.toLocaleString()}</td><td class="num">${fmtSAR(p.rev)}</td>
+      <td class="num"><span class="badge ${p.orders&&p.del/p.orders>.7?'b-green':'b-amber'}">${p.orders?(p.del/p.orders*100).toFixed(1)+'%':'–'}</span></td>
+      <td class="num"><span class="badge ${p.orders&&p.ret/p.orders>.15?'b-red':'b-green'}">${p.orders?(p.ret/p.orders*100).toFixed(1)+'%':'–'}</span></td>
+      <td class="num">${(p.orders/tot*100).toFixed(1)}%</td><td class="num">${(p.rev/totRev*100).toFixed(1)}%</td></tr>`).join('')+'</tbody>';
+}
+
+function renderCurrentView(){
+  if(activeView==='exec')renderExec();
+  else if(activeView==='ops')renderOps();
+  else if(activeView==='sku')renderSKU();
+  else if(activeView==='logistics')renderLogistics();
+  else if(activeView==='geo')renderGeo();
+  else if(activeView==='payments')renderPayments();
+}
+
+// ─── EXPORTS ─────────────────────────────────────────────────
+function exportCSV(){
+  if(!FILTERED.length){alert('No data to export.');return;}
+  const headers=Object.keys(FILTERED[0]);
+  const csv=[headers.join(','),...FILTERED.map(r=>headers.map(h=>`"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`quantem_${activeBrand}_orders_${today()}.csv`;a.click();
+}
+
+function exportExcel(view='orders'){
+  if(!window.XLSX){alert('Excel library not loaded yet. Please wait a moment and try again.');return;}
+  const wb=XLSX.utils.book_new();
+  const k=calcKpis(FILTERED);
+
+  const kpiData=[
+    ['Metric','Value'],
+    ['Brand',BRAND_LABELS[activeBrand]],
+    ['Period',document.getElementById('dateFrom').value+' to '+document.getElementById('dateTo').value],
+    ['Total orders',k.total],['Total revenue','SAR '+k.rev.toFixed(2)],
+    ['AOV','SAR '+k.aov.toFixed(2)],['UPT',k.upt.toFixed(2)],
+    ['Delivery rate',k.delivRate.toFixed(2)+'%'],['Return rate',k.retRate.toFixed(2)+'%'],
+    ['Cancel rate',k.cancelRate.toFixed(2)+'%'],['DSR',k.dsr.toFixed(2)+'%'],
+    ['Net sales','SAR '+k.netSales.toFixed(2)],['COD rate',k.codRate.toFixed(2)+'%'],
+    ['Delivered orders',k.delivered],['Returned orders',k.returned],['Cancelled orders',k.cancelled],
+  ];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(kpiData),'KPI Summary');
+
+  if(FILTERED.length){
+    const ordersSheet=XLSX.utils.json_to_sheet(FILTERED);
+    XLSX.utils.book_append_sheet(wb,ordersSheet,'Orders Data');
+  }
+
+  const skus=getSkus(activeBrand);
+  if(skus.length){
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(skus),'SKU Performance');
+  }
+
+  const cpM={};FILTERED.forEach(o=>{const cp=o['COURIER PARTNER']||'Unknown';if(!cpM[cp])cpM[cp]={name:cp,total:0,del:0,ret:0,can:0,shipCost:0};cpM[cp].total++;const st=getOrdStatus(o);if(st==='Delivered')cpM[cp].del++;if(st==='Returned')cpM[cp].ret++;if(st==='Cancelled')cpM[cp].can++;cpM[cp].shipCost+=parseFloat(o['SHIPPING COST']||0)});
+  const courierData=[['Courier','Orders','Delivered','Delivery %','Returned','Return %','Cancelled','Cancel %','Shipping Cost'],...Object.values(cpM).map(c=>[c.name,c.total,c.del,c.total?(c.del/c.total*100).toFixed(1)+'%':'–',c.ret,c.total?(c.ret/c.total*100).toFixed(1)+'%':'–',c.can,c.total?(c.can/c.total*100).toFixed(1)+'%':'–','SAR '+c.shipCost.toFixed(2)])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(courierData),'Courier Performance');
+
+  const cityM={};FILTERED.forEach(o=>{const c=o['SYSTEM DESTINATION CITY']||o['DESTINATION CITY']||'Unknown';if(!cityM[c])cityM[c]={name:c,orders:0,rev:0,del:0,ret:0};cityM[c].orders++;cityM[c].rev+=parseFloat(o['ORDER AMOUNT'])||0;const st=getOrdStatus(o);if(st==='Delivered')cityM[c].del++;if(st==='Returned')cityM[c].ret++});
+  const cityData=[['City','Orders','Revenue','Delivery %','Return %'],...Object.values(cityM).sort((a,b)=>b.orders-a.orders).map(c=>[c.name,c.orders,'SAR '+c.rev.toFixed(2),c.orders?(c.del/c.orders*100).toFixed(1)+'%':'–',c.orders?(c.ret/c.orders*100).toFixed(1)+'%':'–'])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cityData),'Geographic Performance');
+
+  XLSX.writeFile(wb,`quantem_${activeBrand}_${today()}.xlsx`);
+}
+
+function exportPDF(){
+  const from=document.getElementById('dateFrom').value;
+  const to=document.getElementById('dateTo').value;
+  const k=calcKpis(FILTERED);
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    body{font-family:Arial,sans-serif;color:#1a1a2e;padding:30px;font-size:12px}
+    h1{font-size:20px;margin-bottom:4px;color:#1e3a5f}
+    .sub{color:#666;font-size:11px;margin-bottom:20px}
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+    .kpi{background:#f5f8ff;border:1px solid #d0ddf5;border-radius:8px;padding:12px}
+    .kpi-l{font-size:9px;color:#666;text-transform:uppercase;margin-bottom:4px}
+    .kpi-v{font-size:18px;font-weight:700;color:#1e3a5f}
+    .kpi-s{font-size:9px;color:#888;margin-top:2px}
+    table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:10px}
+    th{background:#1e3a5f;color:#fff;padding:6px 8px;text-align:left}
+    td{padding:5px 8px;border-bottom:1px solid #e8eef8}
+    tr:nth-child(even) td{background:#f5f8ff}
+    h2{font-size:13px;color:#1e3a5f;margin:20px 0 8px;border-bottom:2px solid #1e3a5f;padding-bottom:4px}
+    .footer{margin-top:30px;font-size:9px;color:#aaa;text-align:center}
+  </style></head><body>
+  <h1>Quantem — E-Commerce Operations Report</h1>
+  <div class="sub">Brand: ${BRAND_LABELS[activeBrand]} &nbsp;|&nbsp; Period: ${from||'All'} to ${to||'All'} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString()}</div>
+  <h2>KPI Summary</h2>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-l">Total orders</div><div class="kpi-v">${k.total.toLocaleString()}</div></div>
+    <div class="kpi"><div class="kpi-l">Total revenue</div><div class="kpi-v">${fmtSAR(k.rev)}</div></div>
+    <div class="kpi"><div class="kpi-l">AOV</div><div class="kpi-v">SAR ${Math.round(k.aov)}</div></div>
+    <div class="kpi"><div class="kpi-l">UPT</div><div class="kpi-v">${k.upt.toFixed(2)}</div></div>
+    <div class="kpi"><div class="kpi-l">Delivery rate</div><div class="kpi-v">${k.delivRate.toFixed(1)}%</div><div class="kpi-s">${k.delivered.toLocaleString()} delivered</div></div>
+    <div class="kpi"><div class="kpi-l">Return rate</div><div class="kpi-v">${k.retRate.toFixed(1)}%</div><div class="kpi-s">${k.returned.toLocaleString()} returned</div></div>
+    <div class="kpi"><div class="kpi-l">Cancel rate</div><div class="kpi-v">${k.cancelRate.toFixed(1)}%</div></div>
+    <div class="kpi"><div class="kpi-l">DSR</div><div class="kpi-v">${k.dsr.toFixed(1)}%</div></div>
+    <div class="kpi"><div class="kpi-l">Net sales</div><div class="kpi-v">${fmtSAR(k.netSales)}</div></div>
+    <div class="kpi"><div class="kpi-l">COD rate</div><div class="kpi-v">${k.codRate.toFixed(1)}%</div></div>
+  </div>
+  <h2>Orders data (first 100 rows)</h2>
+  <table><thead><tr><th>Order ID</th><th>Status</th><th>Courier</th><th>Payment</th><th>Amount</th><th>City</th><th>Date</th></tr></thead><tbody>
+  ${FILTERED.slice(0,100).map(o=>`<tr><td>${o['ORDER ID']||''}</td><td>${getOrdStatus(o)}</td><td>${o['COURIER PARTNER']||''}</td><td>${o['PAYMENT MODE']||''}</td><td>SAR ${parseFloat(o['ORDER AMOUNT']||0).toFixed(2)}</td><td>${o['SYSTEM DESTINATION CITY']||o['DESTINATION CITY']||''}</td><td>${(o['ORDER Date']||'').slice(0,10)}</td></tr>`).join('')}
+  </tbody></table>
+  <div class="footer">Quantem Operations Dashboard — Confidential — ${new Date().toLocaleDateString()}</div>
+  </body></html>`;
+
+  const win=window.open('','_blank','width=1000,height=700');
+  win.document.write(html);
+  win.document.close();
+  win.onload=()=>{win.print()};
+}
+
+// ─── GOOGLE SHEETS LOADER ────────────────────────────────────
+function extractSheetId(url){
+  if(!url)return null;
+  const m=url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return m?m[1]:(url.length>20?null:url);
+}
+
+async function fetchTab(sheetId, tabName){
+  const url=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+  const res=await fetch(url);
+  if(!res.ok)return null;
+  const csv=await res.text();
+  if(!csv||csv.length<30)return null;
+  // Check if Google returned an error HTML page instead of CSV
+  if(csv.trim().startsWith('<'))return null;
+  return Papa.parse(csv.trim(),{header:true,skipEmptyLines:true,dynamicTyping:false}).data;
+}
+
+function toggleSheetMode(){
+  const mode=document.getElementById('sheetMode').value;
+  document.getElementById('singleSheetUI').style.display=mode==='single'?'flex':'none';
+  document.getElementById('multiSheetUI').style.display=mode==='multi'?'flex':'none';
+}
+
+async function loadSheet(){
+  const input=document.getElementById('sheetUrl').value.trim();
+  if(!input){alert('Please paste your Google Sheet URL first.');return;}
+  const id=extractSheetId(input);
+  if(!id){alert('Could not read the Sheet ID from that URL. Please copy the full URL from your browser.');return;}
+  setSB('loading','Connecting…');
+  const tabMap={'Match KSA':'match_ksa','Match UAE':'match_uae','Feelin':'feelin','Salfa':'salfa','SKU':'sku'};
+  let loaded=0,errors=[];
+  for(const[tab,brandKey]of Object.entries(tabMap)){
+    try{
+      const data=await fetchTab(id,tab);
+      if(!data){errors.push(tab);continue;}
+      if(brandKey==='sku'){
+        // SKU tab applies to all brands
+        Object.keys(BRAND_LABELS).filter(k=>k!=='all').forEach(bk=>{if(!RAW[bk])RAW[bk]={orders:[],skus:[]};RAW[bk].skus=data});
+      } else {
+        if(!RAW[brandKey])RAW[brandKey]={orders:[],skus:[]};
+        RAW[brandKey].orders=data;
+      }
+      loaded++;
+    }catch(e){errors.push(tab+': '+e.message);}
+  }
+  if(!loaded){
+    setSB('err','Load failed');
+    alert('Could not load any tabs.\n\nCheck:\n1. Sheet is shared as "Anyone with link can view"\n2. Tab names are exactly: Match KSA, Match UAE, Feelin, Salfa, SKU\n3. The URL is correct\n\nErrors: '+errors.join(', '));
+    return;
+  }
+  const skipped=errors.length?` (${errors.length} tabs not found: ${errors.join(', ')})`:' ';
+  setSB('ok',loaded+' tabs loaded'+skipped);
+  document.getElementById('lastUpdated').textContent='Updated '+new Date().toLocaleTimeString();
+  setQuickDate('30');
+  populateFilters(getOrders('all'));
+}
+
+async function loadMultiSheets(){
+  const inputs=document.querySelectorAll('.multi-url');
+  setSB('loading','Loading sheets…');
+  let loaded=0,errors=[];
+  for(const input of inputs){
+    const brand=input.dataset.brand;
+    const url=input.value.trim();
+    if(!url)continue;
+    const id=extractSheetId(url);
+    if(!id){errors.push(brand+': invalid URL');continue;}
+    try{
+      if(brand==='sku'){
+        // SKU file — read first tab
+        const data=await fetchTab(id,'SKU')||await fetchTab(id,'Sheet1')||await fetchTab(id,'Feuille1');
+        if(data){
+          Object.keys(BRAND_LABELS).filter(k=>k!=='all').forEach(bk=>{if(!RAW[bk])RAW[bk]={orders:[],skus:[]};RAW[bk].skus=data});
+          loaded++;
+        } else errors.push('SKU: tab not found');
+      } else {
+        // Try tab named after brand, then Sheet1, then first sheet
+        const tabName={'match_ksa':'Match KSA','match_uae':'Match UAE','feelin':'Feelin','salfa':'Salfa'}[brand];
+        const data=await fetchTab(id,tabName)||await fetchTab(id,'Orders')||await fetchTab(id,'Sheet1')||await fetchTab(id,'Data');
+        if(data){
+          if(!RAW[brand])RAW[brand]={orders:[],skus:[]};
+          RAW[brand].orders=data;
+          loaded++;
+        } else errors.push(brand+': could not read sheet');
+      }
+    }catch(e){errors.push(brand+': '+e.message);}
+  }
+  if(!loaded){setSB('err','Load failed — check sharing');alert('No sheets loaded.\nErrors: '+errors.join('\n'));return;}
+  setSB('ok',loaded+' sheets loaded');
+  document.getElementById('lastUpdated').textContent='Updated '+new Date().toLocaleTimeString();
+  setQuickDate('30');
+  populateFilters(getOrders('all'));
+}
+
+function setSB(state,msg){
+  const el=document.getElementById('statusBadge');
+  el.className='status-badge sb-'+state;el.textContent=msg;
+}
+
+// ─── DEMO DATA ───────────────────────────────────────────────
+function loadDemo(){
+  const brands=['match_ksa','match_uae','feelin','salfa'];
+  const couriers=['Aramex','SMSA','DHL','Naqel','J&T Express'];
+  const cities=['Riyadh','Jeddah','Dammam','Mecca','Medina','Khobar','Taif','Tabuk','Abha','Najran','Hail','Buraidah'];
+  const statuses=[['Delivered',60],['Returned',14],['Cancelled',10],['Shipped',10],['Out for Delivery',6]];
+  const pays=['COD','Credit Card','Apple Pay','BNPL','Mada'];
+  const reasons=['Customer request','Wrong item','Duplicate order','Price issue','Address not found','Product unavailable'];
+  const skuDefs={
+    match_ksa:[['MK-OUD-001','Oud Noir 100ml','Perfumes',299],['MK-AMB-002','Amber Royale 50ml','Perfumes',199],['MK-MUS-003','White Musk 75ml','Perfumes',149],['MK-AFR-001','Oud Air Fresh 300ml','Air Fresheners',89],['MK-SOL-001','Solid Musk Tin','Solid Perfumes',69],['MK-BOX-001','Royal Gift Box','Boxes',499],['MK-BEA-001','Body Lotion 200ml','Beauty',119],['MK-CIT-002','Citrus Splash 50ml','Perfumes',129]],
+    match_uae:[['MU-OUD-001','Dubai Oud 100ml','Perfumes',320],['MU-FLR-002','Floral Bouquet 75ml','Perfumes',220],['MU-AFR-001','Jasmine Mist 250ml','Air Fresheners',95],['MU-SOL-001','Solid Amber Tin','Solid Perfumes',75],['MU-BOX-001','Luxury Gift Set','Boxes',550]],
+    feelin:[['FL-BCR-001','Body Cream 200ml','Beauty',89],['FL-SCD-001','Scented Candle Set','Air Fresheners',149],['FL-DIF-001','Reed Diffuser 100ml','Air Fresheners',129],['FL-SPR-001','Room Spray 100ml','Air Fresheners',69],['FL-OUD-001','Feelin Oud 50ml','Perfumes',179]],
+    salfa:[['SL-TRD-001','Traditional Oud 100ml','Perfumes',249],['SL-MIX-002','Heritage Blend 75ml','Perfumes',199],['SL-GFT-001','Heritage Gift Box','Boxes',399],['SL-AFR-001','Bakhoor Freshener','Air Fresheners',79],['SL-SOL-001','Heritage Solid Musk','Solid Perfumes',59]]
+  };
+  const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  const pick=arr=>arr[rand(0,arr.length-1)];
+  const wStatus=()=>{let r=Math.random()*100,cum=0;for(const[s,w]of statuses){cum+=w;if(r<cum)return s;}return 'Delivered'};
+  brands.forEach(bk=>{
+    const n=rand(400,900);const orders=[];
+    for(let i=0;i<n;i++){
+      const st=wStatus();const baseDate=new Date(2025,0,rand(1,365));
+      orders.push({
+        'ORDER ID':'ORD-'+bk.slice(0,2).toUpperCase()+String(i+1000).padStart(6,'0'),
+        'ORDER REFERENCE':'REF-'+rand(100000,999999),
+        'AWB NUMBER':'AWB'+rand(1000000,9999999),
+        'ORDER STATUS':st,
+        'DELIVERY STATUS':st==='Delivered'?'Delivered':st==='Returned'?'Returned':'In Transit',
+        'RETURN STATUS':st==='Returned'?'Returned':'',
+        'COURIER PARTNER':pick(couriers),
+        'PAYMENT STATUS':'Paid',
+        'PAYMENT MODE':pick(pays),
+        'ORDER AMOUNT':rand(80,700),
+        'SHIPPING COST':rand(15,45),
+        'COD FEE':0,
+        'TOTAL ORDERED QUANTITY':rand(1,5),
+        'TOTAL SKUS':rand(1,3),
+        'ORDER Date':baseDate.toISOString().slice(0,10),
+        'SALES CHANNEL CREATED AT':baseDate.toISOString(),
+        'ORDER CANCELLATION REASON':st==='Cancelled'?pick(reasons):'',
+        'DESTINATION CITY':pick(cities),
+        'SYSTEM DESTINATION CITY':pick(cities),
+        'SHIPMENT WEIGHT':(rand(100,3000)/1000).toFixed(3),
+        'SELLER NAME':BRAND_LABELS[bk],
+        'SELLER CODE':bk.toUpperCase()
+      });
+    }
+    const skuRows=[];
+    (skuDefs[bk]||[]).forEach(([sku,name,cat,price])=>{
+      const qty=rand(50,600);
+      skuRows.push({'Main Sku':sku,'Item SKU':sku,'Item Name':name,'Category':cat,'Item Selling Price':price,' TTL Qty Sold ':qty,' TTL_gross_sales ':qty*price,' total_discount ':qty*price*.06,' total_tax ':qty*price*.15,' net_sale ':qty*price*.79,' total_sale':qty*price});
+    });
+    RAW[bk]={orders,skus:skuRows};
+  });
+  setSB('demo','Demo data');
+  populateFilters(getOrders('all'));
+  setQuickDate('30');
+}
+
+// ─── INIT ────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('lastUpdated').textContent='';
+  loadDemo();
+});
+</script>
+</body>
+</html>
