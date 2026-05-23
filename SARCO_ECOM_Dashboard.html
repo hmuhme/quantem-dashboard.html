@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SARCO E-COM Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1e2537;--bg4:#252d42;
+  --border:#2a3350;--border2:#334068;
+  --text:#e8eaf0;--text2:#8b93b0;--text3:#525d80;
+  --blue:#4a9eff;--blue2:#1e6fd9;--blue3:#0d3d80;
+  --green:#34d399;--green2:#059669;
+  --red:#f87171;--red2:#dc2626;
+  --amber:#fbbf24;--amber2:#d97706;
+  --purple:#a78bfa;--purple2:#7c3aed;
+  --teal:#2dd4bf;--teal2:#0d9488;
+  --radius:10px;--radius-lg:16px;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* HEADER */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:100}
+.logo{font-size:16px;font-weight:600;color:var(--text);letter-spacing:-.3px;white-space:nowrap}
+.logo span{color:var(--blue)}
+.header-spacer{flex:1}
+.status-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;white-space:nowrap}
+.sb-demo{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.25)}
+.sb-ok{background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.25)}
+.sb-loading{background:rgba(74,158,255,.12);color:var(--blue);border:1px solid rgba(74,158,255,.25)}
+.sb-err{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.25)}
+
+/* CONNECT BAR */
+.connect-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.connect-bar input{flex:1;min-width:220px;height:34px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:12px;padding:0 12px;outline:none}
+.connect-bar input:focus{border-color:var(--blue)}
+.connect-bar input::placeholder{color:var(--text3)}
+.btn{height:34px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border2)}
+.btn-primary{background:var(--blue2);color:#fff;border-color:var(--blue2)}
+.btn-primary:hover{background:var(--blue);border-color:var(--blue)}
+.btn-green{background:rgba(52,211,153,.15);color:var(--green);border-color:rgba(52,211,153,.3)}
+.btn-green:hover{background:rgba(52,211,153,.25)}
+.btn-amber{background:rgba(251,191,36,.15);color:var(--amber);border-color:rgba(251,191,36,.3)}
+.btn-amber:hover{background:rgba(251,191,36,.25)}
+.hint{font-size:11px;color:var(--text3);line-height:1.5}
+
+/* CONTROLS */
+.controls{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.brand-tab{height:30px;padding:0 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+.brand-tab:hover{border-color:var(--border2);color:var(--text)}
+.brand-tab.active{background:var(--blue2);color:#fff;border-color:var(--blue2)}
+.ctrl-sep{width:1px;height:20px;background:var(--border);margin:0 4px;flex-shrink:0}
+select{height:30px;padding:0 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;outline:none}
+select:focus{border-color:var(--blue)}
+.date-inputs{display:flex;align-items:center;gap:6px}
+.date-inputs input[type=date]{height:30px;padding:0 8px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-family:var(--mono);font-size:11px;outline:none;cursor:pointer}
+.date-inputs input[type=date]:focus{border-color:var(--blue)}
+.date-lbl{font-size:11px;color:var(--text3)}
+.filter-count{font-size:10px;color:var(--text3);padding:2px 8px;background:var(--bg3);border-radius:10px;border:1px solid var(--border)}
+
+/* NAV TABS */
+.nav-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:0;overflow-x:auto}
+.nav-tab{padding:12px 16px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.nav-tab:hover{color:var(--text2)}
+.nav-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* CONTENT */
+.content{padding:20px 24px;max-width:1400px}
+.view{display:none}
+.view.active{display:block}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;position:relative;overflow:hidden;transition:border-color .2s}
+.kpi:hover{border-color:var(--border2)}
+.kpi-label{font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:400;letter-spacing:.3px;text-transform:uppercase}
+.kpi-val{font-size:22px;font-weight:600;line-height:1;margin-bottom:5px;letter-spacing:-.5px}
+.kpi-sub{font-size:11px;color:var(--text3)}
+.kpi-up{color:var(--green)}
+.kpi-dn{color:var(--red)}
+.kpi-neu{color:var(--text2)}
+.kpi-accent{position:absolute;bottom:0;left:0;height:2px;width:40%;border-radius:0 2px 0 0}
+
+/* CARDS */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:14px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;overflow:hidden}
+.card-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:6px;letter-spacing:.3px;text-transform:uppercase}
+.card-title svg{width:14px;height:14px;opacity:.7}
+
+/* CHARTS */
+.chart-wrap{position:relative}
+
+/* TABLES */
+.tbl-scroll{overflow-x:auto;border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{text-align:left;padding:8px 10px;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;font-size:10px;text-transform:uppercase;letter-spacing:.4px;background:var(--bg3)}
+tbody td{padding:7px 10px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(255,255,255,.02)}
+td.num{text-align:right;font-family:var(--mono);font-size:11px}
+.badge{display:inline-block;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:500;font-family:var(--mono)}
+.b-green{background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.2)}
+.b-red{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.b-blue{background:rgba(74,158,255,.12);color:var(--blue);border:1px solid rgba(74,158,255,.2)}
+.b-amber{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.2)}
+.b-purple{background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.2)}
+.b-teal{background:rgba(45,212,191,.12);color:var(--teal);border:1px solid rgba(45,212,191,.2)}
+
+/* BARS */
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.bar-lbl{font-size:11px;color:var(--text2);width:90px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;background:var(--bg3);border-radius:3px;height:7px;overflow:hidden}
+.bar-fill{height:7px;border-radius:3px;transition:width .4s ease}
+.bar-val{font-size:10px;color:var(--text3);width:54px;flex-shrink:0;font-family:var(--mono)}
+
+/* LEGEND */
+.leg{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3)}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* FUNNEL */
+.funnel-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.funnel-bar{height:28px;display:flex;align-items:center;padding:0 10px;border-radius:6px;font-size:11px;font-weight:500;transition:width .4s}
+
+/* EXPORT ROW */
+.export-row{display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);flex-wrap:wrap}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px;color:var(--text3);font-size:12px}
+
+/* SECTION LABEL */
+.section-lbl{font-size:10px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;font-weight:500}
+
+/* SUMMARY STRIP */
+.summary-strip{background:linear-gradient(90deg,rgba(74,158,255,.08),rgba(45,212,191,.05));border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:16px;font-size:11px;color:var(--text3);line-height:1.7}
+.summary-strip strong{color:var(--text);font-weight:500}
+
+@media(max-width:768px){
+  .content{padding:12px}
+  .controls{padding:8px 12px}
+  .header{padding:0 12px}
+  .nav-bar{padding:0 12px}
+  .connect-bar{padding:8px 12px}
+}
+@media print{
+  .header,.connect-bar,.controls,.nav-bar,.export-row{display:none!important}
+  .view{display:block!important}
+  .content{padding:0}
+  body{background:#fff;color:#000}
+  .kpi,.card{background:#f9f9f9;border:1px solid #ddd}
+}
+</style>
+</head>
+<body>
+
+
+<!-- PASSWORD LOCK -->
+<div id="lockScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0f1117;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0">
+  <div style="background:#161b27;border:1px solid #2a3350;border-radius:16px;padding:40px 36px;width:100%;max-width:380px;text-align:center">
+    <div style="font-size:22px;font-weight:700;margin-bottom:4px"><span style="color:#e8eaf0">SARCO</span> <span style="color:#4a9eff">E-COM</span></div>
+    <div style="font-size:11px;color:#525d80;margin-bottom:28px;letter-spacing:.3px">E-COMMERCE OPERATIONS DASHBOARD</div>
+    <div style="width:48px;height:48px;background:#1e2537;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4a9eff" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    </div>
+    <div style="font-size:12px;color:#525d80;margin-bottom:2px;letter-spacing:.5px;text-transform:uppercase">Welcome back</div>
+    <div style="font-size:17px;font-weight:600;color:#e8eaf0;margin-bottom:16px">Ahmed Sayed</div>
+    <div style="font-size:13px;color:#8b93b0;margin-bottom:16px">Enter password to access</div>
+    <input type="password" id="pwInput" placeholder="Password" onkeydown="if(event.key==='Enter')checkPw()"
+      style="width:100%;height:42px;background:#1e2537;border:1px solid #2a3350;border-radius:10px;color:#e8eaf0;font-size:14px;padding:0 16px;outline:none;text-align:center;letter-spacing:3px;font-family:monospace;margin-bottom:10px"/>
+    <div id="pwError" style="font-size:11px;color:#f87171;height:16px;margin-bottom:8px"></div>
+    <button onclick="checkPw()" style="width:100%;height:42px;background:#1e6fd9;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:.3px">
+      Unlock Dashboard
+    </button>
+    <div style="font-size:10px;color:#525d80;margin-top:20px">SARCO E-COM · Confidential</div>
+  </div>
+</div>
+
+<script>
+// ─── PASSWORD CONFIG ─────────────────────────
+// To change the password: edit the line below
+const DASHBOARD_PASSWORD = "GR7@@gaser";
+// ────────────────────────────────────────────
+
+function checkPw(){
+  const val = document.getElementById('pwInput').value;
+  if(val === DASHBOARD_PASSWORD){
+    document.getElementById('lockScreen').style.display='none';
+    document.body.style.overflow='auto';
+    localStorage.setItem('sarco_unlocked','1');
+  } else {
+    const err = document.getElementById('pwError');
+    err.textContent = 'Incorrect password. Try again.';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').style.borderColor='#f87171';
+    setTimeout(()=>{err.textContent='';document.getElementById('pwInput').style.borderColor='#2a3350';},2500);
+  }
+}
+
+// Auto-unlock if already unlocked in this session
+if(localStorage.getItem('sarco_unlocked')==='1'){
+  document.getElementById('lockScreen').style.display='none';
+} else {
+  document.body.style.overflow='hidden';
+}
+
+document.getElementById('pwInput').focus();
+</script>
+
+<div class="header">
+  <div class="logo"><span style="color:#e8eaf0;font-weight:700;font-size:17px">SARCO</span> <span style="color:#4a9eff;font-weight:700;font-size:17px">E-COM</span></div>
+  <div style="font-size:12px;color:#e8eaf0;font-weight:700;letter-spacing:.3px">E-Commerce Operations Dashboard</div>
+  <div class="header-spacer"></div>
+</div>
+
+<div class="connect-bar" style="flex-direction:column;align-items:stretch;gap:10px">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" style="flex-shrink:0"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    <div style="font-size:11px;color:var(--green);font-weight:500">Connected to Supabase — sarco-ecom-dashboard</div>
+    <select id="loadBrandSelect" style="height:30px;font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text2);padding:0 10px;font-family:var(--font)">
+      <option value="all">All brands</option>
+      <option value="match_ksa">Match KSA</option>
+      <option value="match_uae">Match UAE</option>
+      <option value="salfa">Salfa</option>
+    </select>
+    <button class="btn btn-primary" onclick="loadSelectedBrand()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+      Load from Supabase
+    </button>
+    <button class="btn" onclick="loadDemo()">Load demo</button>
+    <button class="btn btn-green" onclick="showUploadPanel()" id="uploadToggleBtn">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Upload new data
+    </button>
+    <span class="status-badge sb-demo" id="statusBadge">Demo data</span>
+    <span style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="lastUpdated"></span>
+  </div>
+
+  <!-- UPLOAD PANEL -->
+  <div id="uploadPanel" style="display:none;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:12px;flex-direction:column;gap:10px">
+    <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px">Upload CSV/Excel data to Supabase</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px">
+
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:10px;border:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--blue);font-weight:500;margin-bottom:6px;text-transform:uppercase">Omniful — Orders & Shipping</div>
+        <select id="omni_brand" style="width:100%;height:26px;font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);margin-bottom:6px">
+          <option value="match_ksa">Match KSA</option>
+          <option value="salfa">Salfa</option>
+        </select>
+        <input type="file" id="omni_file" accept=".csv,.xlsx" style="font-size:10px;color:var(--text2);width:100%;margin-bottom:6px"/>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="uploadOmniful()">Upload Omniful CSV</button>
+      </div>
+
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:10px;border:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--amber);font-weight:500;margin-bottom:6px;text-transform:uppercase">سلة — تقرير الطلبات</div>
+        <select id="salla_orders_brand" style="width:100%;height:26px;font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);margin-bottom:6px">
+          <option value="match_ksa">Match KSA</option>
+          <option value="match_uae">Match UAE</option>
+          <option value="salfa">Salfa</option>
+        </select>
+        <input type="file" id="salla_orders_file" accept=".csv,.xlsx" style="font-size:10px;color:var(--text2);width:100%;margin-bottom:6px"/>
+        <button class="btn btn-amber" style="width:100%;justify-content:center" onclick="uploadSallaOrders()">Upload Salla Orders CSV</button>
+      </div>
+
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:10px;border:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--purple);font-weight:500;margin-bottom:6px;text-transform:uppercase">سلة — تقرير المنتجات</div>
+        <select id="salla_prod_brand" style="width:100%;height:26px;font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);margin-bottom:6px">
+          <option value="match_ksa">Match KSA</option>
+          <option value="match_uae">Match UAE</option>
+          <option value="salfa">Salfa</option>
+        </select>
+        <input type="file" id="salla_prod_file" accept=".csv,.xlsx" style="font-size:10px;color:var(--text2);width:100%;margin-bottom:6px"/>
+        <button class="btn" style="width:100%;justify-content:center;background:rgba(167,139,250,.15);color:var(--purple);border-color:rgba(167,139,250,.3)" onclick="uploadSallaProducts()">Upload Salla Products CSV</button>
+      </div>
+
+    </div>
+    <div style="font-size:10px;color:var(--text3)">
+      ✅ CSV أو Excel — الداشبورد يترجم الأعمدة تلقائياً (عربي أو إنجليزي) &nbsp;·&nbsp;
+      ✅ البيانات بتتضاف فوق البيانات الموجودة — مش بتحل محلها
+    </div>
+  </div>
+  <div id="singleSheetUI" style="display:none">
+    <div class="hint">
+      Tab names must be exactly:<br>
+      <strong>Match KSA - Omniful &nbsp;·&nbsp; Match KSA - Salla Orders &nbsp;·&nbsp; Match KSA - Salla Products</strong><br>
+      <strong>Match UAE - Omniful &nbsp;·&nbsp; Match UAE - Salla Orders &nbsp;·&nbsp; Match UAE - Salla Products</strong><br>
+      <strong>Salfa - Omniful &nbsp;·&nbsp; Salfa - Salla Orders &nbsp;·&nbsp; Salfa - Salla Products</strong><br>
+      File → Share → Anyone with link → Viewer
+    </div>
+  </div>
+  <div id="multiSheetUI" style="display:none;flex-direction:column;gap:6px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:6px">
+      <div style="display:flex;gap:6px;align-items:center"><span style="font-size:11px;color:var(--text2);width:80px;flex-shrink:0">Match KSA</span><input type="text" data-brand="match_ksa" class="multi-url" placeholder="Sheet URL for Match KSA…" style="flex:1;height:28px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:11px;padding:0 10px;font-family:var(--font);outline:none"/></div>
+      <div style="display:flex;gap:6px;align-items:center"><span style="font-size:11px;color:var(--text2);width:80px;flex-shrink:0">Match UAE</span><input type="text" data-brand="match_uae" class="multi-url" placeholder="Sheet URL for Match UAE…" style="flex:1;height:28px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:11px;padding:0 10px;font-family:var(--font);outline:none"/></div>
+
+      <div style="display:flex;gap:6px;align-items:center"><span style="font-size:11px;color:var(--text2);width:80px;flex-shrink:0">Salfa</span><input type="text" data-brand="salfa" class="multi-url" placeholder="Sheet URL for Salfa…" style="flex:1;height:28px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:11px;padding:0 10px;font-family:var(--font);outline:none"/></div>
+      <div style="display:flex;gap:6px;align-items:center"><span style="font-size:11px;color:var(--text2);width:80px;flex-shrink:0">SKU data</span><input type="text" data-brand="sku" class="multi-url" placeholder="Sheet URL for SKU performance (optional)…" style="flex:1;height:28px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:11px;padding:0 10px;font-family:var(--font);outline:none"/></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="loadMultiSheets()">Load all sheets</button>
+      <div class="hint">Each file needs same column headers. Set each to "Anyone with link can view".</div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="brand-tab active" data-brand="match_ksa" onclick="setBrand(this)">Match KSA</div>
+  <div class="brand-tab" data-brand="match_uae" onclick="setBrand(this)">Match UAE</div>
+  <div class="brand-tab" data-brand="salfa" onclick="setBrand(this)">Salfa</div>
+  <div class="brand-tab" data-brand="all" onclick="setBrand(this)">All brands</div>
+  <div class="ctrl-sep"></div>
+  <div class="date-inputs">
+    <span class="date-lbl">From</span>
+    <input type="date" id="dateFrom" onchange="applyFilters()"/>
+    <span class="date-lbl">To</span>
+    <input type="date" id="dateTo" onchange="applyFilters()"/>
+  </div>
+  <select id="quickDate" onchange="setQuickDate(this.value)">
+    <option value="">Custom range</option>
+    <option value="7">Last 7 days</option>
+    <option value="30" selected>Last 30 days</option>
+    <option value="60">Last 60 days</option>
+    <option value="90">Last 90 days</option>
+    <option value="mtd">This month</option>
+    <option value="all">All time</option>
+  </select>
+  <div class="ctrl-sep"></div>
+  <select id="catFilter" onchange="applyFilters()"><option value="">All categories</option></select>
+  <select id="cityFilter" onchange="applyFilters()"><option value="">All cities</option></select>
+  <select id="payFilter" onchange="applyFilters()"><option value="">All payments</option></select>
+  <select id="shipFilter" onchange="applyFilters()"><option value="">All couriers</option></select>
+  <select id="statusFilter" onchange="applyFilters()"><option value="">All statuses</option><option>Delivered</option><option>Returned</option><option>Cancelled</option></select>
+  <div class="filter-count" id="filterCount">0 orders</div>
+</div>
+
+<div class="nav-bar">
+  <div class="nav-tab active" data-view="exec" onclick="setView(this)">Executive summary</div>
+  <div class="nav-tab" data-view="ops" onclick="setView(this)">Operations</div>
+  <div class="nav-tab" data-view="sku" onclick="setView(this)">SKU & products</div>
+  <div class="nav-tab" data-view="logistics" onclick="setView(this)">Fulfillment & logistics</div>
+  <div class="nav-tab" data-view="geo" onclick="setView(this)">Geographic</div>
+  <div class="nav-tab" data-view="payments" onclick="setView(this)">Payments</div>
+</div>
+
+<div class="content">
+
+<!-- EXECUTIVE -->
+<div class="view active" id="view-exec">
+  <div id="summaryStrip" class="summary-strip"></div>
+  <div class="kpi-grid" id="kpiGrid"></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Revenue & orders trend</div>
+      <div class="leg" id="trendLeg"></div>
+      <div class="chart-wrap" style="height:200px"><canvas id="trendChart" aria-label="Revenue and orders trend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Order status breakdown</div>
+      <div class="leg" id="statusLeg"></div>
+      <div class="chart-wrap" style="height:200px"><canvas id="statusChart" aria-label="Order status donut"></canvas></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Revenue by payment mode</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="payRevChart" aria-label="Revenue by payment"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Orders by courier partner</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="courierExecChart" aria-label="Orders by courier"></canvas></div>
+    </div>
+  </div>
+  <div class="export-row">
+    <button class="btn btn-green" onclick="exportExcel()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Export to Excel
+    </button>
+    <button class="btn btn-amber" onclick="exportPDF()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Export to PDF
+    </button>
+    <button class="btn" onclick="exportCSV()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export CSV
+    </button>
+  </div>
+</div>
+
+<!-- OPERATIONS -->
+<div class="view" id="view-ops">
+  <div class="kpi-grid" id="opsKpi"></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Delivery funnel</div>
+      <div id="funnelViz"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">COD vs paid — performance</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="codChart" aria-label="COD vs paid chart"></canvas></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Daily order volume (last 30 days)</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="dailyChart" aria-label="Daily orders"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Omniful — order status breakdown</div>
+      <div id="omnifulStatus" style="margin-top:4px"></div>
+    </div>
+  </div>
+  <div class="export-row">
+    <button class="btn btn-green" onclick="exportExcel('ops')">Export Operations Excel</button>
+    <button class="btn btn-amber" onclick="exportPDF()">Export PDF</button>
+  </div>
+</div>
+
+<!-- SKU -->
+<div class="view" id="view-sku">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Top 10 SKUs by quantity sold</div>
+      <div class="tbl-scroll"><table id="skuTable"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Category performance</div>
+      <div class="tbl-scroll"><table id="catTable"></table></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">SKU net sales contribution — top 10</div>
+    <div class="chart-wrap" style="height:280px"><canvas id="skuBarChart" aria-label="SKU bar chart"></canvas></div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Bottom 10 SKUs — lowest quantity sold</div>
+    <div class="tbl-scroll"><table id="lowSkuTable"></table></div>
+  </div>
+  <div class="export-row">
+    <button class="btn btn-green" onclick="exportExcel('sku')">Export SKU Report Excel</button>
+    <button class="btn btn-amber" onclick="exportPDF()">Export PDF</button>
+  </div>
+</div>
+
+<!-- LOGISTICS -->
+<div class="view" id="view-logistics">
+  <div class="kpi-grid" id="logKpi"></div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Courier performance matrix — Omniful / shipping partners</div>
+    <div class="tbl-scroll"><table id="courierTable"></table></div>
+  </div>
+  <div class="grid3">
+    <div class="card">
+      <div class="card-title">Volume share</div>
+      <div class="leg" id="courierLeg"></div>
+      <div class="chart-wrap" style="height:160px"><canvas id="courierPie" aria-label="Courier volume share"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Delivery rate by courier</div>
+      <div id="courierDelivBars" style="margin-top:4px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Return rate by courier</div>
+      <div id="courierRetBars" style="margin-top:4px"></div>
+    </div>
+  </div>
+  <div class="export-row">
+    <button class="btn btn-green" onclick="exportExcel('logistics')">Export Logistics Excel</button>
+    <button class="btn btn-amber" onclick="exportPDF()">Export PDF</button>
+  </div>
+</div>
+
+<!-- GEO -->
+<div class="view" id="view-geo">
+  <div class="kpi-grid" id="geoKpi"></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Top 10 cities — orders</div>
+      <div id="cityOrderBars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 10 cities — revenue</div>
+      <div id="cityRevBars"></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Delivery rate by city (min 5 orders)</div>
+      <div id="cityDelivBars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Return rate by city (min 5 orders)</div>
+      <div id="cityRetBars"></div>
+    </div>
+  </div>
+  <div class="export-row">
+    <button class="btn btn-green" onclick="exportExcel('geo')">Export Geographic Excel</button>
+    <button class="btn btn-amber" onclick="exportPDF()">Export PDF</button>
+  </div>
+</div>
+
+<!-- PAYMENTS -->
+<div class="view" id="view-payments">
+  <div class="kpi-grid" id="payKpi"></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Orders by payment mode</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="payOrderChart" aria-label="Orders by payment mode"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Revenue by payment mode</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="payRevChart2" aria-label="Revenue by payment mode"></canvas></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Payment mode performance matrix</div>
+    <div class="tbl-scroll"><table id="payTable"></table></div>
+  </div>
+  <div class="export-row">
+    <button class="btn btn-green" onclick="exportExcel('payments')">Export Payments Excel</button>
+    <button class="btn btn-amber" onclick="exportPDF()">Export PDF</button>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+// ─── SUPABASE CONFIG ────────────────────────────────────────
+const SUPABASE_URL = 'https://cjoyyyjlqgddchgasikl.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_CCsZ_ucMCnCnzN3SK-U_MQ_SKZ35GjB';
+let supabase = null;
+
+function initSupabase(){
+  try{
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log('Supabase connected ✅');
+    return true;
+  }catch(e){
+    console.warn('Supabase init failed:', e.message);
+    return false;
+  }
+}
+
+// ─── SUPABASE DATA LOADER ────────────────────────────────────
+// Table map: brand + type → supabase table name
+const TABLE_MAP = {
+  match_ksa: { ops:'match_ksa_ops', orders:'match_ksa_orders', products:'match_ksa_products' },
+  match_uae: { ops:null,            orders:'match_uae_orders', products:'match_uae_products' },
+  salfa:     { ops:'salfa_ops',     orders:'salfa_orders',     products:'salfa_products' },
+};
+
+// Salla Arabic → DB column mapping
+const SALLA_MAP = {
+  'رقم الطلب':'order_id','حالة الطلب':'order_status','اسم العميل':'customer_name',
+  'رقم الجوال':'customer_phone','المدينة':'city','الدولة':'country','SKU':'sku',
+  'مجموع السلة':'cart_total','الخصم':'discount','تكلفة الشحن':'shipping_cost',
+  'طريقة الدفع':'payment_method','عمولة الدفع عند الاستلام':'cod_fee','الضريبة':'tax',
+  'إجمالي الطلب (غير شامل التخفيضات)':'total_before_discount',
+  'إجمالي الطلب (شامل التخفيضات)':'order_amount',
+  'تاريخ الطلب':'order_date','شركة الشحن / الفرع':'courier_branch',
+  'شركة الشحن':'courier','رقم البوليصة':'awb_number',
+  'رقم مرجع الطلب':'order_reference','تاريخ آخر تحديث للطلب':'order_updated_at',
+  'رمز الكوبون':'coupon_code','قيمة خصم الكوبون':'coupon_discount',
+  'قيمة خصم العروض الخاصة':'promo_discount','بريد العميل':'customer_email',
+  'الوسوم':'tags','رقم الفاتورة':'invoice_number','تاريخ التسليم':'delivered_at',
+  'إجمالي وزن الطلب':'total_weight','الفرع':'branch',
+  'order_source':'order_source','utm_medium':'utm_medium','utm_campaign':'utm_campaign',
+  'order_type':'order_type','postal_code':'postal_code',
+};
+
+const OMNIFUL_MAP = {
+  'ORDER ID':'order_id','ORDER REFERENCE':'order_reference',
+  'ORDER CREATED AT':'order_created_at','SALES CHANNEL CREATED AT':'sales_channel_created_at',
+  'ORDER STATUS':'order_status','RETURN STATUS':'return_status',
+  'DELIVERY STATUS':'delivery_status','COURIER PARTNER':'courier',
+  'PAYMENT MODE':'payment_method','DESTINATION CITY':'destination_city',
+  'SYSTEM DESTINATION CITY':'city','ORDER AMOUNT':'order_amount',
+  'SHIPPING COST':'shipping_cost','COD FEE':'cod_fee',
+  'TOTAL ORDERED QUANTITY':'total_qty','TOTAL SKUS':'total_skus',
+  'AWB NUMBER':'awb_number','SHIPMENT WEIGHT':'shipment_weight',
+  'ORDER CANCELLATION REASON':'cancellation_reason','CANCELLED BY':'cancelled_by',
+  'ORDER DELIVERED AT':'order_delivered_at','ORDER RETURNED AT':'order_returned_at',
+  'ORDER CANCELLED AT':'order_cancelled_at','ORDER SHIPPED AT':'order_shipped_at',
+  'SHIPMENT FAILED REASON':'failed_reason','CUSTOMER NAME':'customer_name',
+  'CUSTOMER EMAIL':'customer_email','CUSTOMER PHONE':'customer_phone',
+  'SELLER NAME':'seller_name','INVOICE NUMBER':'invoice_number',
+};
+
+const PRODUCTS_MAP = {
+  'Main Sku':'main_sku','Item SKU':'item_sku','Item Name':'item_name',
+  'Category':'category','Item Selling Price':'selling_price',
+  ' TTL Qty Sold ':'qty_sold','TTL Qty Sold':'qty_sold',
+  ' TTL_gross_sales ':'gross_sales','TTL_gross_sales':'gross_sales',
+  ' total_discount ':'total_discount','total_discount':'total_discount',
+  ' total_tax ':'total_tax','total_tax':'total_tax',
+  ' net_sale ':'net_sale','net_sale':'net_sale',
+  ' total_sale':'total_sale','total_sale':'total_sale',
+};
+
+function normalizeRow(row, mapping){
+  const out = {};
+  for(const[orig, col] of Object.entries(mapping)){
+    const v = row[orig]??row[orig.trim()]??null;
+    if(v!==null && v!==undefined && v!=='') out[col]=v;
+  }
+  return out;
+}
+
+async function uploadCSVToSupabase(csvText, tableName, mapping, brandKey){
+  if(!supabase){ alert('Supabase not connected'); return 0; }
+  const parsed = Papa.parse(csvText.trim(), {header:true, skipEmptyLines:true});
+  if(!parsed.data.length){ alert('No data found in file'); return 0; }
+
+  const rows = parsed.data.map(r => {
+    const norm = normalizeRow(r, mapping);
+    norm.brand = brandKey;
+    return norm;
+  }).filter(r => Object.keys(r).length > 2);
+
+  // Upload in batches of 500
+  let uploaded = 0;
+  const BATCH = 500;
+  for(let i=0; i<rows.length; i+=BATCH){
+    const batch = rows.slice(i, i+BATCH);
+    const {error} = await supabase.from(tableName).insert(batch);
+    if(error){ console.error('Upload error:', error.message); break; }
+    uploaded += batch.length;
+    setSB('loading', `Uploading... ${uploaded}/${rows.length}`);
+  }
+  return uploaded;
+}
+
+async function loadFromSupabase(brand){
+  if(!supabase) return;
+  setSB('loading','Loading from Supabase…');
+  const tables = TABLE_MAP[brand]||{};
+  const dateFrom = document.getElementById('dateFrom').value;
+  const dateTo = document.getElementById('dateTo').value;
+
+  try{
+    // Load OPS (Omniful)
+    if(tables.ops){
+      let q = supabase.from(tables.ops).select('*');
+      if(dateFrom) q = q.gte('order_created_at', dateFrom);
+      if(dateTo) q = q.lte('order_created_at', dateTo+'T23:59:59');
+      q = q.limit(100000);
+      const {data, error} = await q;
+      if(!error && data){
+        if(!RAW[brand]) RAW[brand]={ops:[],orders:[],products:[]};
+        RAW[brand].ops = data;
+      }
+    }
+    // Load Salla Orders
+    if(tables.orders){
+      let q = supabase.from(tables.orders).select('*');
+      if(dateFrom) q = q.gte('order_date', dateFrom);
+      if(dateTo) q = q.lte('order_date', dateTo);
+      q = q.limit(100000);
+      const {data, error} = await q;
+      if(!error && data){
+        if(!RAW[brand]) RAW[brand]={ops:[],orders:[],products:[]};
+        RAW[brand].orders = data;
+      }
+    }
+    // Load Products (no date filter needed)
+    if(tables.products){
+      const {data, error} = await supabase.from(tables.products).select('*').limit(50000);
+      if(!error && data){
+        if(!RAW[brand]) RAW[brand]={ops:[],orders:[],products:[]};
+        RAW[brand].products = data;
+      }
+    }
+    const total = (RAW[brand]?.ops?.length||0)+(RAW[brand]?.orders?.length||0);
+    setSB('ok', `${total.toLocaleString()} rows loaded`);
+    document.getElementById('lastUpdated').textContent = 'Updated '+new Date().toLocaleTimeString();
+    populateFilters(getOrders('all'));
+    renderCurrentView();
+  }catch(e){
+    setSB('err','Load failed: '+e.message);
+  }
+}
+
+async function loadAllFromSupabase(){
+  if(!supabase){ alert('Supabase not connected'); return; }
+  setSB('loading','Loading all brands…');
+  for(const brand of ['match_ksa','match_uae','salfa']){
+    await loadFromSupabase(brand);
+  }
+  setSB('ok','All brands loaded ✅');
+  renderCurrentView();
+}
+
+// ─── GLOBALS ───────────────────────────────────────────────
+const PAL=['#4a9eff','#34d399','#f87171','#fbbf24','#a78bfa','#2dd4bf','#fb923c','#e879f9'];
+const BRAND_LABELS={match_ksa:'Match KSA',match_uae:'Match UAE',salfa:'Salfa',all:'All brands'};
+let RAW={};
+let FILTERED=[];
+let activeBrand='match_ksa';
+let activeView='exec';
+let charts={};
+
+// ─── UTILS ─────────────────────────────────────────────────
+const fmtN=n=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(Math.round(n));
+const fmtSAR=n=>'SAR '+fmtN(n);
+const ca=(h,a)=>{const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return `rgba(${r},${g},${b},${a})`};
+const dc=id=>{if(charts[id]){charts[id].destroy();delete charts[id]}};
+const today=()=>new Date().toISOString().slice(0,10);
+const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)};
+
+function getOrdStatus(o){
+  const raw=(o['ORDER STATUS']||o['حالة الطلب']||'').trim();
+  const s=raw.toUpperCase();
+
+  // ── OMNIFUL statuses (English uppercase) ──────────────────
+  if(s==='DELIVERED'||s==='PARTIALLY DELIVERED') return 'Delivered';
+  if(s==='RETURN TO ORIGIN')                     return 'RTO';
+  if(s==='RETURN IN PROGRESS')                   return 'RTO';
+  if(s==='CANCELLED')                            return 'Cancelled';
+  if(s==='SHIPPED'||s==='READY TO SHIP')         return 'In Transit';
+  if(s==='PACKED'||s==='IN PACKING'||
+     s==='IN PICKING'||s==='PICKED'||
+     s==='NEW ORDER'||s==='ON HOLD')             return 'Processing';
+
+  // ── SALLA UAE statuses (Arabic) ───────────────────────────
+  // Delivered
+  if(raw==='تم التوصيل')                         return 'Delivered';
+
+  // In Transit
+  if(raw==='جاري التوصيل'   ||
+     raw==='جاري التوصيل '  ||
+     raw==='Out for Delivery'||
+     raw==='تم الشحن'       ||
+     raw==='جاري الشحن')                         return 'In Transit';
+
+  // RTO — Return to Origin
+  if(raw==='مسترجع'         ||
+     raw==='قيد الإسترجاع')                      return 'RTO';
+
+  // Customer Returns
+  if(raw==='مسترجع-عميل'               ||
+     raw==='استرجاع جزئي مع المنتجات') return 'Customer Returns';
+
+  // Golden Warranty
+  if(raw==='استرجاع جزئي بدون المنتجات'||
+     raw==='ارجاع المبلغ بدون المنتج'  ||
+     raw==='ارجاع المبلغ فقط')                   return 'Golden Warranty';
+
+  // Cancelled
+  if(raw==='ملغي'      ||
+     raw==='ملغي تست'  ||
+     raw==='ملغي تست1' ||
+     raw==='محذوف')                              return 'Cancelled';
+
+  // Pre-Order
+  if(raw==='طلب مسبق'                            ||
+     raw==='طلبات الدفع المسبق'                  ||
+     raw.includes('قسيمة اليوم الوطني'))         return 'Pre-Order';
+
+  // Claim
+  if(raw==='مفقود من شركة الشحن'                 ||
+     raw==='تالف من شركة الشحن'                  ||
+     raw==='تالف من شركة  الشحن'                 ||
+     raw.includes('تم التعويض من شركات الشحن'))  return 'Claim';
+
+  // Processing (catch-all for all remaining Arabic statuses)
+  if(raw==='تحت المعالجة'          ||
+     raw==='تحت المعالجة1'         ||
+     raw==='قيد التجهيز'           ||
+     raw==='قيد التجهيز1'          ||
+     raw==='قيد التنفيذ'           ||
+     raw==='تم التنفيذ/ قيد التجهيز'||
+     raw==='تم التنفيذ/قيد التجهيز'||
+     raw==='بإنتظار المراجعة'      ||
+     raw==='بإنتظار المراجعة 1'    ||
+     raw==='بإنتظار المراجعة1'     ||
+     raw==='بإنتظار الدفع'         ||
+     raw==='بإنتظار  المنتجات'     ||
+     raw==='بإنتظار المنتجات'      ||
+     raw==='العنوان غير مكتمل'     ||
+     raw==='الطلب غير مكتمل'       ||
+     raw==='تم التعديل'            ||
+     raw==='Order incomplete'      ||
+     raw==='Processing')                         return 'Processing';
+
+  // Fallback — return raw status so nothing is lost
+  return raw||'Unknown';
+}
+
+// Helper: which statuses count as "returned" for KPI calculations
+function isReturned(o){
+  const st=getOrdStatus(o);
+  return st==='RTO'||st==='Customer Returns';
+}
+function isGoldenWarranty(o){
+  return getOrdStatus(o)==='Golden Warranty';
+}
+// Helper: which statuses count as active/in-progress
+function isActive(o){
+  const st=getOrdStatus(o);
+  return st==='In Transit'||st==='Processing'||st==='Pre-Order';
+}
+
+function calcKpis(rows){
+  const total=rows.length;
+  // Revenue: use _AMOUNT (merged) or ORDER AMOUNT or Salla إجمالي
+  const rev=rows.reduce((s,o)=>s+(o['_AMOUNT']||parseFloat(o['ORDER AMOUNT'])||parseFloat(o['إجمالي الطلب (شامل التخفيضات)'])||0),0);
+  const delivered=rows.filter(o=>getOrdStatus(o)==='Delivered').length;
+  const rto=rows.filter(o=>getOrdStatus(o)==='RTO').length;
+  const custReturns=rows.filter(o=>getOrdStatus(o)==='Customer Returns').length;
+  const goldenWarranty=rows.filter(o=>getOrdStatus(o)==='Golden Warranty').length;
+  const returned=rto+custReturns; // Golden Warranty excluded from return rate
+  const cancelled=rows.filter(o=>getOrdStatus(o)==='Cancelled').length;
+  const pending=rows.filter(o=>isActive(o)).length;
+  // Payment: use _PAYMENT (merged) or PAYMENT MODE
+  const cod=rows.filter(o=>{
+    const pm=(o['_PAYMENT']||o['PAYMENT MODE']||o['طريقة الدفع']||'').toLowerCase();
+    return pm.includes('cod')||pm.includes('cash')||pm.includes('الاستلام');
+  }).length;
+  const qty=rows.reduce((s,o)=>s+(parseInt(o['TOTAL ORDERED QUANTITY'])||1),0);
+  const ship=rows.reduce((s,o)=>s+(o['_SHIPPING_COST']||parseFloat(o['SHIPPING COST'])||parseFloat(o['تكلفة الشحن'])||0),0);
+  const delivRev=rows.filter(o=>getOrdStatus(o)==='Delivered').reduce((s,o)=>s+(o['_AMOUNT']||parseFloat(o['ORDER AMOUNT'])||parseFloat(o['إجمالي الطلب (شامل التخفيضات)'])||0),0);
+  const discount=rows.reduce((s,o)=>s+(o['_DISCOUNT']||parseFloat(o['الخصم'])||0),0);
+  return{total,rev,delivered,returned,rto,custReturns,goldenWarranty,cancelled,pending,cod,qty,ship,delivRev,discount,
+    delivRate:total?delivered/total*100:0,
+    retRate:total?returned/total*100:0,
+    gwRate:total?goldenWarranty/total*100:0,
+    cancelRate:total?cancelled/total*100:0,
+    pendingRate:total?pending/total*100:0,
+    aov:total?rev/total:0,
+    upt:total?qty/total:0,
+    dsr:rev?delivRev/rev*100:0,
+    codRate:total?cod/total*100:0,
+    netSales:delivRev-discount
+  };
+}
+
+// ─── BRAND / FILTER ─────────────────────────────────────────
+// Get Omniful OPS data (order status, shipping, courier)
+function getOps(brand){
+  if(brand==='all') return Object.values(RAW).flatMap(x=>x.ops||[]);
+  return RAW[brand]?.ops||[];
+}
+// Get Salla Orders data (amounts, city, payment, customer)
+function getOrders(brand){
+  if(brand==='all') return Object.values(RAW).flatMap(x=>x.orders||[]);
+  return RAW[brand]?.orders||[];
+}
+// Get Salla Products/SKU data
+function getSkus(brand){
+  if(brand==='all') return Object.values(RAW).flatMap(x=>x.products||[]);
+  return RAW[brand]?.products||[];
+}
+// Merge ops + orders by ORDER ID for full picture
+function getMerged(brand){
+  const ops=getOps(brand);
+  const orders=getOrders(brand);
+  if(!ops.length && !orders.length) return [];
+  if(!ops.length) return orders;
+  if(!orders.length) return ops;
+  // Build lookup from Salla orders by order reference
+  const sallaMap={};
+  orders.forEach(o=>{
+    const ref=o['رقم الطلب']||o['رقم مرجع الطلب']||o['ORDER REFERENCE']||'';
+    if(ref) sallaMap[String(ref).trim()]=o;
+  });
+  // Enrich Omniful rows with Salla financial data
+  return ops.map(op=>{
+    const ref=String(op['ORDER REFERENCE']||op['ORDER ID']||'').trim();
+    const salla=sallaMap[ref]||{};
+    return {
+      ...op,
+      // Prefer Salla financial fields, fallback to Omniful
+      '_AMOUNT': parseFloat(salla['إجمالي الطلب (شامل التخفيضات)']||salla['إجمالي الطلب (غير شامل التخفيضات)']||op['ORDER AMOUNT']||0),
+      '_CITY': salla['المدينة']||op['SYSTEM DESTINATION CITY']||op['DESTINATION CITY']||'',
+      '_PAYMENT': salla['طريقة الدفع']||op['PAYMENT MODE']||'',
+      '_DISCOUNT': parseFloat(salla['الخصم']||0),
+      '_SHIPPING_COST': parseFloat(salla['تكلفة الشحن']||op['SHIPPING COST']||0),
+      '_COD_FEE': parseFloat(salla['عمولة الدفع عند الاستلام']||op['COD FEE']||0),
+      '_TAX': parseFloat(salla['الضريبة']||0),
+      '_CUSTOMER': salla['اسم العميل']||op['CUSTOMER NAME']||'',
+    };
+  });
+}
+
+function applyFilters(){
+  let orders=getMerged(activeBrand);
+  const from=document.getElementById('dateFrom').value;
+  const to=document.getElementById('dateTo').value;
+  const cat=document.getElementById('catFilter').value;
+  const city=document.getElementById('cityFilter').value;
+  const pay=document.getElementById('payFilter').value;
+  const ship=document.getElementById('shipFilter').value;
+  const status=document.getElementById('statusFilter').value;
+  if(from) orders=orders.filter(o=>{const d=(o['ORDER Date']||o['SALES CHANNEL CREATED AT']||o['ORDER CREATED AT']||o['تاريخ الطلب']||'').slice(0,10);return d>=from});
+  if(to) orders=orders.filter(o=>{const d=(o['ORDER Date']||o['SALES CHANNEL CREATED AT']||o['ORDER CREATED AT']||o['تاريخ الطلب']||'').slice(0,10);return d<=to});
+  if(pay) orders=orders.filter(o=>(o['_PAYMENT']||o['PAYMENT MODE']||o['طريقة الدفع']||'').toLowerCase().includes(pay.toLowerCase()));
+  if(ship) orders=orders.filter(o=>(o['COURIER PARTNER']||'')=== ship);
+  if(city) orders=orders.filter(o=>(o['_CITY']||o['SYSTEM DESTINATION CITY']||o['DESTINATION CITY']||o['المدينة']||'')===city);
+  if(status) orders=orders.filter(o=>getOrdStatus(o)===status);
+  FILTERED=orders;
+  document.getElementById('filterCount').textContent=orders.length.toLocaleString()+' orders';
+  renderCurrentView();
+}
+
+function setBrand(el){
+  document.querySelectorAll('.brand-tab').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  activeBrand=el.dataset.brand;
+  applyFilters();
+}
+
+function setView(el){
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  activeView=el.dataset.view;
+  document.getElementById('view-'+activeView).classList.add('active');
+  renderCurrentView();
+}
+
+function setQuickDate(val){
+  const from=document.getElementById('dateFrom');
+  const to=document.getElementById('dateTo');
+  if(val==='all'){from.value='';to.value='';}
+  else if(val==='mtd'){const d=new Date();from.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';to.value=today();}
+  else if(val){from.value=daysAgo(parseInt(val));to.value=today();}
+  applyFilters();
+}
+
+function populateFilters(allOrders){
+  const cities=[...new Set(allOrders.map(o=>o['_CITY']||o['SYSTEM DESTINATION CITY']||o['DESTINATION CITY']||o['المدينة']).filter(Boolean))].sort();
+  const couriers=[...new Set(allOrders.map(o=>o['COURIER PARTNER']).filter(Boolean))].sort();
+  const pays=[...new Set(allOrders.map(o=>o['_PAYMENT']||o['PAYMENT MODE']||o['طريقة الدفع']).filter(Boolean))].sort();
+  const cats=[...new Set(getSkus('all').map(s=>s['Category']).filter(Boolean))].sort();
+  const se=(id,vals)=>{const el=document.getElementById(id);const cur=el.value;el.innerHTML='<option value="">All '+id.replace('Filter','')+'s</option>'+vals.map(v=>`<option ${v===cur?'selected':''}>${v}</option>`).join('')};
+  se('cityFilter',cities);se('shipFilter',couriers);se('payFilter',pays);se('catFilter',cats);
+}
+
+// ─── KPI CARDS ──────────────────────────────────────────────
+function kpiCards(elId,kpis){
+  document.getElementById(elId).innerHTML=kpis.map(k=>`
+    <div class="kpi">
+      <div class="kpi-label">${k.l}</div>
+      <div class="kpi-val" style="color:${k.vc||'var(--text)'}">${k.v}</div>
+      <div class="kpi-sub ${k.cls||'kpi-neu'}">${k.s||''}</div>
+      <div class="kpi-accent" style="background:${k.a||'#4a9eff'}"></div>
+    </div>`).join('');
+}
+
+// ─── BAR ROWS ───────────────────────────────────────────────
+function barRows(elId,items,valFn,col){
+  const mx=Math.max(...items.map(valFn),1);
+  document.getElementById(elId).innerHTML=items.map(it=>`
+    <div class="bar-row">
+      <span class="bar-lbl" title="${it.name}">${it.name}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(valFn(it)/mx*100)}%;background:${col}"></div></div>
+      <span class="bar-val">${typeof valFn(it)==='number'&&valFn(it)>999?fmtSAR(valFn(it)):(valFn(it).toFixed?valFn(it).toFixed(1)+'%':valFn(it))}</span>
+    </div>`).join('');
+}
+
+// ─── RENDER EXECUTIVE ───────────────────────────────────────
+function renderExec(){
+  const k=calcKpis(FILTERED);
+  const opsCount=getOps(activeBrand).length;
+  const ordCount=getOrders(activeBrand).length;
+  const prdCount=getSkus(activeBrand).length;
+  const srcLabel=opsCount&&ordCount?`Omniful (${opsCount.toLocaleString()} rows) + Salla Orders (${ordCount.toLocaleString()} rows) + Salla Products (${prdCount.toLocaleString()} rows)`:opsCount?`Omniful only (${opsCount.toLocaleString()} rows)`:`Demo data`;
+  document.getElementById('summaryStrip').innerHTML=`
+    <strong>${FILTERED.length.toLocaleString()} orders</strong> · <strong>${BRAND_LABELS[activeBrand]}</strong> ·
+    Revenue <strong>${fmtSAR(k.rev)}</strong> · Delivery <strong>${k.delivRate.toFixed(1)}%</strong> ·
+    Return <strong>${k.retRate.toFixed(1)}%</strong> · GW <strong>${k.gwRate.toFixed(1)}%</strong> · Net sales <strong>${fmtSAR(k.netSales)}</strong> · DSR <strong>${k.dsr.toFixed(1)}%</strong>
+    <span style="color:var(--text3);font-size:10px;margin-right:8px"> | Sources: ${srcLabel}</span>`;
+  kpiCards('kpiGrid',[
+    {l:'Total orders',v:k.total.toLocaleString(),s:'Filtered period',a:'#4a9eff'},
+    {l:'Total revenue',v:fmtSAR(k.rev),s:'Gross order value',a:'#34d399'},
+    {l:'AOV',v:'SAR '+Math.round(k.aov),s:'Avg order value',a:'#4a9eff'},
+    {l:'UPT / basket',v:k.upt.toFixed(1),s:'Units per transaction',a:'#fbbf24'},
+    {l:'Delivery rate',v:k.delivRate.toFixed(1)+'%',s:k.delivered.toLocaleString()+' delivered',cls:'kpi-up',a:'#34d399'},
+    {l:'Return rate',v:k.retRate.toFixed(1)+'%',s:'RTO '+k.rto+' · Customer '+k.custReturns,cls:'kpi-dn',a:'#f87171'},
+    {l:'Golden Warranty rate',v:k.gwRate.toFixed(1)+'%',s:k.goldenWarranty.toLocaleString()+' orders — no product return',cls:'kpi-neu',a:'#a78bfa'},
+    {l:'Cancel rate',v:k.cancelRate.toFixed(1)+'%',s:k.cancelled.toLocaleString()+' cancelled',cls:'kpi-dn',a:'#f87171'},
+    {l:'DSR',v:k.dsr.toFixed(1)+'%',s:'Delivered sales rate',cls:'kpi-up',a:'#a78bfa'},
+    {l:'Net sales',v:fmtSAR(k.netSales),s:'After returns',a:'#a78bfa'},
+    {l:'COD rate',v:k.codRate.toFixed(1)+'%',s:k.cod+' COD orders',a:'#fbbf24'},
+    {l:'Paid delivery',v:(100-k.codRate).toFixed(1)+'%',s:'Digital payment rate',a:'#2dd4bf'},
+    {l:'Total returned',v:k.returned.toLocaleString(),s:'Return orders',cls:'kpi-dn',a:'#f87171'},
+  ]);
+
+  const dateMap={};
+  FILTERED.forEach(o=>{
+    const d=(o['ORDER Date']||o['SALES CHANNEL CREATED AT']||o['ORDER CREATED AT']||o['تاريخ الطلب']||'').slice(0,10);
+    if(d){
+      if(!dateMap[d])dateMap[d]={rev:0,cnt:0};
+      dateMap[d].rev+=(o['_AMOUNT']||parseFloat(o['ORDER AMOUNT'])||parseFloat(o['إجمالي الطلب (شامل التخفيضات)'])||0);
+      dateMap[d].cnt++;
+    }
+  });
+  const dates=Object.keys(dateMap).sort().slice(-60);
+  document.getElementById('trendLeg').innerHTML=`<div class="leg-item"><div class="leg-dot" style="background:#4a9eff"></div>Revenue (SAR)</div><div class="leg-item"><div class="leg-dot" style="background:#34d399;border-style:dashed"></div>Orders</div>`;
+  dc('trendChart');
+  charts.trendChart=new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:dates.map(d=>d.slice(5)),datasets:[{label:'Revenue',data:dates.map(d=>Math.round(dateMap[d].rev)),borderColor:'#4a9eff',backgroundColor:ca('#4a9eff',.08),tension:.4,yAxisID:'y',pointRadius:2,borderWidth:2},{label:'Orders',data:dates.map(d=>dateMap[d].cnt),borderColor:'#34d399',borderDash:[4,3],backgroundColor:'transparent',tension:.4,yAxisID:'y1',pointRadius:2,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9},maxTicksLimit:12,maxRotation:45},grid:{color:'rgba(255,255,255,.04)'}},y:{position:'left',ticks:{color:'#525d80',font:{size:9},callback:v=>fmtSAR(v)},grid:{color:'rgba(255,255,255,.04)'}},y1:{position:'right',ticks:{color:'#525d80',font:{size:9}},grid:{drawOnChartArea:false}}}}});
+
+  const sMap={'Delivered':0,'In Transit':0,'Processing':0,'RTO':0,'Customer Returns':0,'Golden Warranty':0,'Cancelled':0,'Pre-Order':0,'Claim':0};
+  FILTERED.forEach(o=>{const st=getOrdStatus(o);if(sMap.hasOwnProperty(st))sMap[st]++;else sMap[st]=(sMap[st]||0)+1;});
+  // Only show statuses with >0 orders
+  const sK=Object.keys(sMap).filter(k=>sMap[k]>0);
+  const sV=sK.map(k=>sMap[k]);
+  document.getElementById('statusLeg').innerHTML=sK.map((l,i)=>`<div class="leg-item"><div class="leg-dot" style="background:${PAL[i]}"></div>${l} ${sV[i].toLocaleString()}</div>`).join('');
+  dc('statusChart');
+  charts.statusChart=new Chart(document.getElementById('statusChart'),{type:'doughnut',data:{labels:sK,datasets:[{data:sV,backgroundColor:PAL.slice(0,4),borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'62%'}});
+
+  const pmRev={};FILTERED.forEach(o=>{
+    const pm=o['_PAYMENT']||o['PAYMENT MODE']||o['طريقة الدفع']||'Unknown';
+    const amt=o['_AMOUNT']||parseFloat(o['ORDER AMOUNT'])||parseFloat(o['إجمالي الطلب (شامل التخفيضات)'])||0;
+    pmRev[pm]=(pmRev[pm]||0)+amt;
+  });
+  const pmK=Object.keys(pmRev);
+  dc('payRevChart');
+  charts.payRevChart=new Chart(document.getElementById('payRevChart'),{type:'bar',data:{labels:pmK,datasets:[{data:pmK.map(k=>Math.round(pmRev[k])),backgroundColor:PAL.slice(0,pmK.length),borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9}}},y:{ticks:{color:'#525d80',font:{size:9},callback:v=>fmtSAR(v)},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+  const cpCnt={};FILTERED.forEach(o=>{const cp=o['COURIER PARTNER']||o['شركة الشحن']||'Unknown';cpCnt[cp]=(cpCnt[cp]||0)+1});
+  const cpK=Object.keys(cpCnt);
+  dc('courierExecChart');
+  charts.courierExecChart=new Chart(document.getElementById('courierExecChart'),{type:'bar',data:{labels:cpK,datasets:[{data:cpK.map(k=>cpCnt[k]),backgroundColor:PAL.slice(0,cpK.length),borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9}}},y:{ticks:{color:'#525d80',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+}
+
+// ─── RENDER OPS ─────────────────────────────────────────────
+function renderOps(){
+  const k=calcKpis(FILTERED);
+  kpiCards('opsKpi',[
+    {l:'Delivered',v:k.delivered.toLocaleString(),s:k.delivRate.toFixed(1)+'% rate',cls:'kpi-up',a:'#34d399'},
+    {l:'Returned',v:k.returned.toLocaleString(),s:k.retRate.toFixed(1)+'% rate',cls:'kpi-dn',a:'#f87171'},
+    {l:'Cancelled',v:k.cancelled.toLocaleString(),s:k.cancelRate.toFixed(1)+'% rate',cls:'kpi-dn',a:'#f87171'},
+    {l:'In transit',v:(k.total-k.delivered-k.returned-k.cancelled).toLocaleString(),s:'Active shipments',a:'#fbbf24'},
+    {l:'DSR',v:k.dsr.toFixed(1)+'%',s:'Delivered sales rate',cls:'kpi-up',a:'#a78bfa'},
+    {l:'Net sales',v:fmtSAR(k.netSales),s:'After returns',a:'#4a9eff'},
+  ]);
+
+  // Omniful status breakdown
+  const opsRows=getOps(activeBrand).length?getOps(activeBrand):FILTERED;
+  const statusCounts={};
+  const allStatuses=['NEW ORDER','ON HOLD','IN PICKING','PICKED','IN PACKING','PACKED','READY TO SHIP','SHIPPED','DELIVERED','PARTIALLY DELIVERED','RETURN IN PROGRESS','RETURN TO ORIGIN','CANCELLED'];
+  allStatuses.forEach(s=>statusCounts[s]=0);
+  opsRows.forEach(o=>{const s=(o['ORDER STATUS']||'').toUpperCase().trim();if(statusCounts.hasOwnProperty(s))statusCounts[s]++;});
+
+  const tot=k.total||1;
+  const shipped=k.total-k.cancelled;
+  const outDel=Math.round(shipped*.95);
+  [{l:'Total orders',n:k.total,c:'#4a9eff'},{l:'Shipped',n:shipped,c:'#2dd4bf'},{l:'Out for delivery',n:outDel,c:'#34d399'},{l:'Delivered',n:k.delivered,c:'#059669'}].forEach(f=>{
+    document.getElementById('funnelViz').innerHTML=([{l:'Total orders',n:k.total,c:'#4a9eff'},{l:'Shipped',n:shipped,c:'#2dd4bf'},{l:'Out for delivery',n:outDel,c:'#34d399'},{l:'Delivered',n:k.delivered,c:'#059669'}]).map(f=>{
+      const p=Math.round(f.n/tot*100);
+      return `<div class="funnel-row"><div class="funnel-bar" style="width:${Math.max(p,18)}%;background:${ca(f.c,.18)};color:${f.c}">${f.l}: <strong>${f.n.toLocaleString()}</strong></div><span style="font-size:10px;color:#525d80;font-family:var(--mono)">${p}%</span></div>`;
+    }).join('');
+  });
+
+  const codO=FILTERED.filter(o=>{const pm=(o['_PAYMENT']||o['PAYMENT MODE']||o['طريقة الدفع']||'').toLowerCase();return pm.includes('cod')||pm.includes('cash')||pm.includes('الاستلام');});
+  const paidO=FILTERED.filter(o=>{const pm=(o['_PAYMENT']||o['PAYMENT MODE']||o['طريقة الدفع']||'').toLowerCase();return !(pm.includes('cod')||pm.includes('cash')||pm.includes('الاستلام'));});
+  const ck=calcKpis(codO),pk=calcKpis(paidO);
+  dc('codChart');
+  charts.codChart=new Chart(document.getElementById('codChart'),{type:'bar',data:{labels:['Delivery %','Return %','Cancel %'],datasets:[{label:'COD',data:[+ck.delivRate.toFixed(1),+ck.retRate.toFixed(1),+ck.cancelRate.toFixed(1)],backgroundColor:ca('#fbbf24',.6),borderWidth:0,borderRadius:3},{label:'Paid',data:[+pk.delivRate.toFixed(1),+pk.retRate.toFixed(1),+pk.cancelRate.toFixed(1)],backgroundColor:ca('#34d399',.6),borderWidth:0,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b93b0',font:{size:10},boxWidth:10}}},scales:{x:{ticks:{color:'#525d80',font:{size:9}}},y:{ticks:{color:'#525d80',font:{size:9},callback:v=>v+'%'},max:100,grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+  const dMap={};FILTERED.forEach(o=>{const d=(o['ORDER Date']||o['SALES CHANNEL CREATED AT']||o['ORDER CREATED AT']||o['تاريخ الطلب']||'').slice(0,10);if(d){dMap[d]=(dMap[d]||0)+1}});
+  const dd=Object.keys(dMap).sort().slice(-30);
+  dc('dailyChart');
+  charts.dailyChart=new Chart(document.getElementById('dailyChart'),{type:'bar',data:{labels:dd.map(d=>d.slice(5)),datasets:[{data:dd.map(d=>dMap[d]||0),backgroundColor:ca('#4a9eff',.6),borderWidth:0,borderRadius:3,hoverBackgroundColor:'#4a9eff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9},maxRotation:45,autoSkip:true,maxTicksLimit:15}},y:{ticks:{color:'#525d80',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+  const crMap={};FILTERED.filter(o=>getOrdStatus(o)==='Cancelled').forEach(o=>{const r=o['ORDER CANCELLATION REASON']||'Not specified';crMap[r]=(crMap[r]||0)+1});
+  const crTop=Object.entries(crMap).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  const crMx=crTop[0]?crTop[0][1]:1;
+  // Omniful status breakdown bars
+  const statusColors={
+    // Omniful
+    'DELIVERED':'#34d399','PARTIALLY DELIVERED':'#2dd4bf',
+    'SHIPPED':'#4a9eff','READY TO SHIP':'#60a5fa','PACKED':'#818cf8',
+    'IN PACKING':'#a78bfa','PICKED':'#c084fc','IN PICKING':'#e879f9',
+    'NEW ORDER':'#94a3b8','ON HOLD':'#fbbf24',
+    'RETURN IN PROGRESS':'#fb923c','RETURN TO ORIGIN':'#f87171','CANCELLED':'#ef4444',
+    // Mapped categories
+    'Delivered':'#34d399','In Transit':'#4a9eff','Processing':'#fbbf24',
+    'RTO':'#f87171','Customer Returns':'#fb923c','Golden Warranty':'#a78bfa',
+    'Cancelled':'#ef4444','Pre-Order':'#94a3b8','Claim':'#e879f9','Unknown':'#525d80'
+  };
+  const statusEntries=Object.entries(statusCounts).filter(([s,n])=>n>0).sort((a,b)=>b[1]-a[1]);
+  const maxSC=statusEntries[0]?statusEntries[0][1]:1;
+  document.getElementById('omnifulStatus').innerHTML=statusEntries.length?
+    statusEntries.map(([s,n])=>`<div class="bar-row"><span class="bar-lbl" style="font-size:9px" title="${s}">${s.slice(0,18)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/maxSC*100)}%;background:${statusColors[s]||'#4a9eff'}"></div></div><span class="bar-val">${n}</span></div>`).join('')
+    :'<div class="empty">No Omniful data loaded</div>';
+}
+
+// ─── RENDER SKU ──────────────────────────────────────────────
+function renderSKU(){
+  const skus=getSkus(activeBrand);
+  let skuRows=[];
+  if(skus.length){
+    const m={};
+    skus.forEach(s=>{
+      const k=s['Main Sku']||s['Item SKU']||'?';
+      if(!m[k])m[k]={sku:k,name:s['Item Name']||k,cat:s['Category']||'-',price:parseFloat(s['Item Selling Price'])||0,qty:0,gross:0,net:0,disc:0,tax:0};
+      m[k].qty+=parseInt(s[' TTL Qty Sold ']||s['TTL Qty Sold']||0)||0;
+      m[k].gross+=parseFloat(s[' TTL_gross_sales ']||s['TTL_gross_sales']||0)||0;
+      m[k].net+=parseFloat(s[' net_sale ']||s['net_sale']||0)||0;
+      m[k].disc+=parseFloat(s[' total_discount ']||s['total_discount']||0)||0;
+      m[k].tax+=parseFloat(s[' total_tax ']||s['total_tax']||0)||0;
+    });
+    skuRows=Object.values(m).sort((a,b)=>b.qty-a.qty);
+  } else {
+    const m={};
+    FILTERED.forEach(o=>{const k='Orders';if(!m[k])m[k]={sku:'-',name:'No SKU tab loaded',cat:'-',qty:0,gross:0,net:0,disc:0};m[k].qty+=(parseInt(o['TOTAL ORDERED QUANTITY'])||1);m[k].gross+=(parseFloat(o['ORDER AMOUNT'])||0);m[k].net+=(parseFloat(o['ORDER AMOUNT'])||0)});
+    skuRows=Object.values(m);
+  }
+  const top10=skuRows.slice(0,10);
+  const bot10=skuRows.slice(-10).reverse();
+
+  document.getElementById('skuTable').innerHTML=`<thead><tr><th>SKU</th><th>Product name</th><th>Category</th><th>Price</th><th class="num">Qty sold</th><th class="num">Gross sales</th><th class="num">Discount</th><th class="num">Net sales</th></tr></thead><tbody>`+
+    top10.map((s,i)=>`<tr><td><span class="badge b-blue">${s.sku}</span></td><td>${s.name}</td><td>${s.cat}</td><td class="num">SAR ${s.price}</td><td class="num">${s.qty.toLocaleString()}</td><td class="num">${fmtSAR(s.gross)}</td><td class="num">${fmtSAR(s.disc)}</td><td class="num"><strong>${fmtSAR(s.net)}</strong></td></tr>`).join('')+'</tbody>';
+
+  const catM={};skuRows.forEach(s=>{const c=s.cat;if(!catM[c])catM[c]={cat:c,qty:0,gross:0,net:0,disc:0,cnt:0};catM[c].qty+=s.qty;catM[c].gross+=s.gross;catM[c].net+=s.net;catM[c].disc+=s.disc;catM[c].cnt++});
+  const catR=Object.values(catM).sort((a,b)=>b.net-a.net);
+  document.getElementById('catTable').innerHTML=`<thead><tr><th>Category</th><th class="num">SKUs</th><th class="num">Qty sold</th><th class="num">Net sales</th><th class="num">Avg price</th></tr></thead><tbody>`+
+    catR.map(c=>`<tr><td>${c.cat}</td><td class="num">${c.cnt}</td><td class="num">${c.qty.toLocaleString()}</td><td class="num">${fmtSAR(c.net)}</td><td class="num">SAR ${c.qty>0?Math.round(c.net/c.qty):0}</td></tr>`).join('')+'</tbody>';
+
+  dc('skuBarChart');
+  charts.skuBarChart=new Chart(document.getElementById('skuBarChart'),{type:'bar',data:{labels:top10.map(s=>s.name.length>18?s.name.slice(0,18)+'…':s.name),datasets:[{data:top10.map(s=>Math.round(s.net)),backgroundColor:PAL.slice(0,top10.length),borderWidth:0,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9},callback:v=>fmtSAR(v)},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#8b93b0',font:{size:9}}}}}});
+
+  document.getElementById('lowSkuTable').innerHTML=`<thead><tr><th>SKU</th><th>Product name</th><th>Category</th><th class="num">Qty sold</th><th class="num">Gross</th><th class="num">Net sales</th></tr></thead><tbody>`+
+    bot10.map(s=>`<tr><td><span class="badge b-amber">${s.sku}</span></td><td>${s.name}</td><td>${s.cat}</td><td class="num">${s.qty.toLocaleString()}</td><td class="num">${fmtSAR(s.gross)}</td><td class="num">${fmtSAR(s.net)}</td></tr>`).join('')+'</tbody>';
+}
+
+// ─── RENDER LOGISTICS ───────────────────────────────────────
+function renderLogistics(){
+  const k=calcKpis(FILTERED);
+  kpiCards('logKpi',[
+    {l:'Delivery rate',v:k.delivRate.toFixed(1)+'%',s:'All couriers',cls:'kpi-up',a:'#34d399'},
+    {l:'Return rate',v:k.retRate.toFixed(1)+'%',s:'All couriers',cls:'kpi-dn',a:'#f87171'},
+    {l:'Cancel rate',v:k.cancelRate.toFixed(1)+'%',s:'All couriers',cls:'kpi-dn',a:'#f87171'},
+    {l:'Total shipped',v:(k.total-k.cancelled).toLocaleString(),s:'Excl. cancelled',a:'#4a9eff'},
+    {l:'Total weight',v:fmtN(k.ship)+' SAR',s:'Total shipping cost',a:'#2dd4bf'},
+  ]);
+
+  const cpM={};
+  // For logistics: prefer Omniful data which has accurate courier/status info
+  const opsData=getOps(activeBrand).length?getOps(activeBrand):FILTERED;
+  opsData.forEach(o=>{
+    const cp=o['COURIER PARTNER']||o['شركة الشحن']||'Unknown';
+    if(!cpM[cp])cpM[cp]={name:cp,total:0,del:0,ret:0,gw:0,can:0,wt:0,shipCost:0};
+    cpM[cp].total++;
+    const st=getOrdStatus(o);
+    if(st==='Delivered')cpM[cp].del++;
+    if(isReturned(o))cpM[cp].ret++;
+    if(isGoldenWarranty(o))cpM[cp].gw++;
+    if(st==='Cancelled')cpM[cp].can++;
+    cpM[cp].wt+=parseFloat(o['SHIPMENT WEIGHT']||0);
+    cpM[cp].shipCost+=parseFloat(o['_SHIPPING_COST']||o['SHIPPING COST']||o['تكلفة الشحن']||0);
+  });
+  const cpR=Object.values(cpM).sort((a,b)=>b.total-a.total);
+
+  document.getElementById('courierTable').innerHTML=`<thead><tr><th>Courier</th><th class="num">Orders</th><th class="num">Delivered</th><th class="num">Delivery %</th><th class="num">Return %</th><th class="num">GW %</th><th class="num">Cancel %</th><th class="num">Ship cost</th><th class="num">Avg weight</th></tr></thead><tbody>`+
+    cpR.map(c=>`<tr>
+      <td><strong>${c.name}</strong></td>
+      <td class="num">${c.total.toLocaleString()}</td>
+      <td class="num">${c.del.toLocaleString()}</td>
+      <td class="num"><span class="badge ${c.total&&c.del/c.total>.7?'b-green':'b-amber'}">${c.total?(c.del/c.total*100).toFixed(1)+'%':'–'}</span></td>
+      <td class="num"><span class="badge ${c.total&&c.ret/c.total>.15?'b-red':'b-green'}">${c.total?(c.ret/c.total*100).toFixed(1)+'%':'–'}</span></td>
+      <td class="num"><span class="badge b-purple">${c.total?(c.gw/c.total*100).toFixed(1)+'%':'–'}</span></td>
+      <td class="num">${c.total?(c.can/c.total*100).toFixed(1)+'%':'–'}</td>
+      <td class="num">${fmtSAR(c.shipCost)}</td>
+      <td class="num">${c.total?(c.wt/c.total).toFixed(2)+' kg':'–'}</td>
+    </tr>`).join('')+'</tbody>';
+
+  document.getElementById('courierLeg').innerHTML=cpR.slice(0,5).map((c,i)=>`<div class="leg-item"><div class="leg-dot" style="background:${PAL[i]}"></div>${c.name} ${c.total.toLocaleString()}</div>`).join('');
+  dc('courierPie');
+  charts.courierPie=new Chart(document.getElementById('courierPie'),{type:'doughnut',data:{labels:cpR.slice(0,6).map(c=>c.name),datasets:[{data:cpR.slice(0,6).map(c=>c.total),backgroundColor:PAL.slice(0,6),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'58%'}});
+
+  const mxT=cpR[0]?cpR[0].total:1;
+  document.getElementById('courierDelivBars').innerHTML=cpR.map(c=>{const r=c.total?c.del/c.total*100:0;return `<div class="bar-row"><span class="bar-lbl">${c.name}</span><div class="bar-track"><div class="bar-fill" style="width:${r}%;background:#34d399"></div></div><span class="bar-val">${r.toFixed(1)}%</span></div>`}).join('');
+  document.getElementById('courierRetBars').innerHTML=cpR.map(c=>{const r=c.total?c.ret/c.total*100:0;return `<div class="bar-row"><span class="bar-lbl">${c.name}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(r*4,100)}%;background:#f87171"></div></div><span class="bar-val">${r.toFixed(1)}%</span></div>`}).join('');
+}
+
+// ─── RENDER GEO ─────────────────────────────────────────────
+function renderGeo(){
+  const cityM={};
+  FILTERED.forEach(o=>{
+    const c=o['_CITY']||o['SYSTEM DESTINATION CITY']||o['DESTINATION CITY']||o['المدينة']||'Unknown';
+    if(!cityM[c])cityM[c]={name:c,orders:0,rev:0,del:0,ret:0,gw:0};
+    cityM[c].orders++;
+    cityM[c].rev+=(o['_AMOUNT']||parseFloat(o['ORDER AMOUNT'])||parseFloat(o['إجمالي الطلب (شامل التخفيضات)'])||0);
+    const st=getOrdStatus(o);
+    if(st==='Delivered')cityM[c].del++;
+    if(isReturned(o))cityM[c].ret++;
+    if(isGoldenWarranty(o))cityM[c].gw++;
+  });
+  const byCnt=Object.values(cityM).sort((a,b)=>b.orders-a.orders).slice(0,10);
+  const byRev=Object.values(cityM).sort((a,b)=>b.rev-a.rev).slice(0,10);
+  const byDel=Object.values(cityM).filter(c=>c.orders>=5).sort((a,b)=>(b.del/b.orders)-(a.del/a.orders)).slice(0,10);
+  const byRet=Object.values(cityM).filter(c=>c.orders>=5).sort((a,b)=>(a.ret/a.orders)-(b.ret/b.orders)).slice(0,10);
+  const mxO=byCnt[0]?.orders||1,mxR=byRev[0]?.rev||1;
+
+  kpiCards('geoKpi',[
+    {l:'Active cities',v:Object.keys(cityM).length,s:'With orders in period',a:'#4a9eff'},
+    {l:'Top city (orders)',v:byCnt[0]?.name||'-',s:(byCnt[0]?.orders||0).toLocaleString()+' orders',cls:'kpi-up',a:'#34d399'},
+    {l:'Top city (revenue)',v:byRev[0]?.name||'-',s:fmtSAR(byRev[0]?.rev||0),cls:'kpi-up',a:'#a78bfa'},
+    {l:'Best delivery city',v:byDel[0]?.name||'-',s:byDel[0]?(byDel[0].del/byDel[0].orders*100).toFixed(1)+'%':'-',cls:'kpi-up',a:'#2dd4bf'},
+  ]);
+
+  document.getElementById('cityOrderBars').innerHTML=byCnt.map(c=>`<div class="bar-row"><span class="bar-lbl">${c.name}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(c.orders/mxO*100)}%;background:#4a9eff"></div></div><span class="bar-val">${c.orders.toLocaleString()}</span></div>`).join('');
+  document.getElementById('cityRevBars').innerHTML=byRev.map(c=>`<div class="bar-row"><span class="bar-lbl">${c.name}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(c.rev/mxR*100)}%;background:#a78bfa"></div></div><span class="bar-val">${fmtSAR(c.rev)}</span></div>`).join('');
+  document.getElementById('cityDelivBars').innerHTML=byDel.map(c=>{const r=c.del/c.orders*100;return `<div class="bar-row"><span class="bar-lbl">${c.name}</span><div class="bar-track"><div class="bar-fill" style="width:${r}%;background:#34d399"></div></div><span class="bar-val">${r.toFixed(1)}%</span></div>`}).join('');
+  document.getElementById('cityRetBars').innerHTML=byRet.map(c=>{const r=c.ret/c.orders*100;return `<div class="bar-row"><span class="bar-lbl">${c.name}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(r*4,100)}%;background:#f87171"></div></div><span class="bar-val">${r.toFixed(1)}%</span></div>`}).join('');
+}
+
+// ─── RENDER PAYMENTS ────────────────────────────────────────
+function renderPayments(){
+  const pmM={};
+  FILTERED.forEach(o=>{
+    const pm=o['_PAYMENT']||o['PAYMENT MODE']||o['طريقة الدفع']||'Unknown';
+    const amt=o['_AMOUNT']||parseFloat(o['ORDER AMOUNT'])||parseFloat(o['إجمالي الطلب (شامل التخفيضات)'])||0;
+    if(!pmM[pm])pmM[pm]={name:pm,orders:0,rev:0,del:0,ret:0,gw:0};
+    pmM[pm].orders++;pmM[pm].rev+=amt;
+    const st=getOrdStatus(o);
+    if(st==='Delivered')pmM[pm].del++;
+    if(isReturned(o))pmM[pm].ret++;
+    if(isGoldenWarranty(o))pmM[pm].gw++;
+  });
+  const pmR=Object.values(pmM).sort((a,b)=>b.orders-a.orders);
+  const tot=FILTERED.length||1,totRev=FILTERED.reduce((s,o)=>s+(parseFloat(o['ORDER AMOUNT'])||0),0)||1;
+  const codRow=pmR.find(p=>p.name.toLowerCase().includes('cod'));
+
+  kpiCards('payKpi',[
+    {l:'Payment modes',v:pmR.length,s:'Active in period',a:'#4a9eff'},
+    {l:'COD orders',v:(codRow?.orders||0).toLocaleString(),s:(codRow?(codRow.orders/tot*100).toFixed(1):0)+'% of orders',a:'#fbbf24'},
+    {l:'COD revenue',v:fmtSAR(codRow?.rev||0),s:(codRow?(codRow.rev/totRev*100).toFixed(1):0)+'% of revenue',a:'#fbbf24'},
+    {l:'Digital payment orders',v:(tot-(codRow?.orders||0)).toLocaleString(),s:(100-(codRow?(codRow.orders/tot*100):0)).toFixed(1)+'% of orders',cls:'kpi-up',a:'#34d399'},
+  ]);
+
+  dc('payOrderChart');dc('payRevChart2');
+  charts.payOrderChart=new Chart(document.getElementById('payOrderChart'),{type:'bar',data:{labels:pmR.map(p=>p.name),datasets:[{data:pmR.map(p=>p.orders),backgroundColor:PAL.slice(0,pmR.length),borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9}}},y:{ticks:{color:'#525d80',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+  charts.payRevChart2=new Chart(document.getElementById('payRevChart2'),{type:'bar',data:{labels:pmR.map(p=>p.name),datasets:[{data:pmR.map(p=>Math.round(p.rev)),backgroundColor:PAL.slice(0,pmR.length),borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#525d80',font:{size:9}}},y:{ticks:{color:'#525d80',font:{size:9},callback:v=>fmtSAR(v)},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+  document.getElementById('payTable').innerHTML=`<thead><tr><th>Payment mode</th><th class="num">Orders</th><th class="num">Revenue</th><th class="num">Delivery %</th><th class="num">Return %</th><th class="num">GW %</th><th class="num">Order share</th><th class="num">Rev share</th></tr></thead><tbody>`+
+    pmR.map(p=>`<tr><td><strong>${p.name}</strong></td><td class="num">${p.orders.toLocaleString()}</td><td class="num">${fmtSAR(p.rev)}</td>
+      <td class="num"><span class="badge ${p.orders&&p.del/p.orders>.7?'b-green':'b-amber'}">${p.orders?(p.del/p.orders*100).toFixed(1)+'%':'–'}</span></td>
+      <td class="num"><span class="badge ${p.orders&&p.ret/p.orders>.15?'b-red':'b-green'}">${p.orders?(p.ret/p.orders*100).toFixed(1)+'%':'–'}</span></td>
+      <td class="num"><span class="badge b-purple">${p.orders?(p.gw/p.orders*100).toFixed(1)+'%':'–'}</span></td>
+      <td class="num">${(p.orders/tot*100).toFixed(1)}%</td><td class="num">${(p.rev/totRev*100).toFixed(1)}%</td></tr>`).join('')+'</tbody>';
+}
+
+function renderCurrentView(){
+  if(activeView==='exec')renderExec();
+  else if(activeView==='ops')renderOps();
+  else if(activeView==='sku')renderSKU();
+  else if(activeView==='logistics')renderLogistics();
+  else if(activeView==='geo')renderGeo();
+  else if(activeView==='payments')renderPayments();
+}
+
+// ─── EXPORTS ─────────────────────────────────────────────────
+function exportCSV(){
+  if(!FILTERED.length){alert('No data to export.');return;}
+  const headers=Object.keys(FILTERED[0]);
+  const csv=[headers.join(','),...FILTERED.map(r=>headers.map(h=>`"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`quantem_${activeBrand}_orders_${today()}.csv`;a.click();
+}
+
+function exportExcel(view='orders'){
+  if(!window.XLSX){alert('Excel library not loaded yet. Please wait a moment and try again.');return;}
+  const wb=XLSX.utils.book_new();
+  const k=calcKpis(FILTERED);
+
+  const kpiData=[
+    ['Metric','Value'],
+    ['Brand',BRAND_LABELS[activeBrand]],
+    ['Period',document.getElementById('dateFrom').value+' to '+document.getElementById('dateTo').value],
+    ['Total orders',k.total],['Total revenue','SAR '+k.rev.toFixed(2)],
+    ['AOV','SAR '+k.aov.toFixed(2)],['UPT',k.upt.toFixed(2)],
+    ['Delivery rate',k.delivRate.toFixed(2)+'%'],['Return rate',k.retRate.toFixed(2)+'%'],
+    ['Cancel rate',k.cancelRate.toFixed(2)+'%'],['DSR',k.dsr.toFixed(2)+'%'],
+    ['Net sales','SAR '+k.netSales.toFixed(2)],['COD rate',k.codRate.toFixed(2)+'%'],
+    ['Delivered orders',k.delivered],['Returned orders',k.returned],['Cancelled orders',k.cancelled],
+  ];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(kpiData),'KPI Summary');
+
+  if(FILTERED.length){
+    const ordersSheet=XLSX.utils.json_to_sheet(FILTERED);
+    XLSX.utils.book_append_sheet(wb,ordersSheet,'Orders Data');
+  }
+
+  const skus=getSkus(activeBrand);
+  if(skus.length){
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(skus),'SKU Performance');
+  }
+
+  const cpM={};FILTERED.forEach(o=>{const cp=o['COURIER PARTNER']||'Unknown';if(!cpM[cp])cpM[cp]={name:cp,total:0,del:0,ret:0,can:0,shipCost:0};cpM[cp].total++;const st=getOrdStatus(o);if(st==='Delivered')cpM[cp].del++;if(st==='Returned')cpM[cp].ret++;if(st==='Cancelled')cpM[cp].can++;cpM[cp].shipCost+=parseFloat(o['SHIPPING COST']||0)});
+  const courierData=[['Courier','Orders','Delivered','Delivery %','Returned','Return %','Cancelled','Cancel %','Shipping Cost'],...Object.values(cpM).map(c=>[c.name,c.total,c.del,c.total?(c.del/c.total*100).toFixed(1)+'%':'–',c.ret,c.total?(c.ret/c.total*100).toFixed(1)+'%':'–',c.can,c.total?(c.can/c.total*100).toFixed(1)+'%':'–','SAR '+c.shipCost.toFixed(2)])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(courierData),'Courier Performance');
+
+  const cityM={};FILTERED.forEach(o=>{const c=o['SYSTEM DESTINATION CITY']||o['DESTINATION CITY']||'Unknown';if(!cityM[c])cityM[c]={name:c,orders:0,rev:0,del:0,ret:0};cityM[c].orders++;cityM[c].rev+=parseFloat(o['ORDER AMOUNT'])||0;const st=getOrdStatus(o);if(st==='Delivered')cityM[c].del++;if(st==='Returned')cityM[c].ret++});
+  const cityData=[['City','Orders','Revenue','Delivery %','Return %'],...Object.values(cityM).sort((a,b)=>b.orders-a.orders).map(c=>[c.name,c.orders,'SAR '+c.rev.toFixed(2),c.orders?(c.del/c.orders*100).toFixed(1)+'%':'–',c.orders?(c.ret/c.orders*100).toFixed(1)+'%':'–'])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cityData),'Geographic Performance');
+
+  XLSX.writeFile(wb,`quantem_${activeBrand}_${today()}.xlsx`);
+}
+
+function exportPDF(){
+  const from=document.getElementById('dateFrom').value;
+  const to=document.getElementById('dateTo').value;
+  const k=calcKpis(FILTERED);
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    body{font-family:Arial,sans-serif;color:#1a1a2e;padding:30px;font-size:12px}
+    h1{font-size:20px;margin-bottom:4px;color:#1e3a5f}
+    .sub{color:#666;font-size:11px;margin-bottom:20px}
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+    .kpi{background:#f5f8ff;border:1px solid #d0ddf5;border-radius:8px;padding:12px}
+    .kpi-l{font-size:9px;color:#666;text-transform:uppercase;margin-bottom:4px}
+    .kpi-v{font-size:18px;font-weight:700;color:#1e3a5f}
+    .kpi-s{font-size:9px;color:#888;margin-top:2px}
+    table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:10px}
+    th{background:#1e3a5f;color:#fff;padding:6px 8px;text-align:left}
+    td{padding:5px 8px;border-bottom:1px solid #e8eef8}
+    tr:nth-child(even) td{background:#f5f8ff}
+    h2{font-size:13px;color:#1e3a5f;margin:20px 0 8px;border-bottom:2px solid #1e3a5f;padding-bottom:4px}
+    .footer{margin-top:30px;font-size:9px;color:#aaa;text-align:center}
+  </style></head><body>
+  <h1>SARCO E-COM — E-Commerce Operations Report</h1>
+  <div class="sub">Brand: ${BRAND_LABELS[activeBrand]} &nbsp;|&nbsp; Period: ${from||'All'} to ${to||'All'} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString()}</div>
+  <h2>KPI Summary</h2>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-l">Total orders</div><div class="kpi-v">${k.total.toLocaleString()}</div></div>
+    <div class="kpi"><div class="kpi-l">Total revenue</div><div class="kpi-v">${fmtSAR(k.rev)}</div></div>
+    <div class="kpi"><div class="kpi-l">AOV</div><div class="kpi-v">SAR ${Math.round(k.aov)}</div></div>
+    <div class="kpi"><div class="kpi-l">UPT</div><div class="kpi-v">${k.upt.toFixed(2)}</div></div>
+    <div class="kpi"><div class="kpi-l">Delivery rate</div><div class="kpi-v">${k.delivRate.toFixed(1)}%</div><div class="kpi-s">${k.delivered.toLocaleString()} delivered</div></div>
+    <div class="kpi"><div class="kpi-l">Return rate</div><div class="kpi-v">${k.retRate.toFixed(1)}%</div><div class="kpi-s">${k.returned.toLocaleString()} returned</div></div>
+    <div class="kpi"><div class="kpi-l">Cancel rate</div><div class="kpi-v">${k.cancelRate.toFixed(1)}%</div></div>
+    <div class="kpi"><div class="kpi-l">DSR</div><div class="kpi-v">${k.dsr.toFixed(1)}%</div></div>
+    <div class="kpi"><div class="kpi-l">Net sales</div><div class="kpi-v">${fmtSAR(k.netSales)}</div></div>
+    <div class="kpi"><div class="kpi-l">COD rate</div><div class="kpi-v">${k.codRate.toFixed(1)}%</div></div>
+  </div>
+  <h2>Orders data (first 100 rows)</h2>
+  <table><thead><tr><th>Order ID</th><th>Status</th><th>Courier</th><th>Payment</th><th>Amount</th><th>City</th><th>Date</th></tr></thead><tbody>
+  ${FILTERED.slice(0,100).map(o=>`<tr><td>${o['ORDER ID']||''}</td><td>${getOrdStatus(o)}</td><td>${o['COURIER PARTNER']||''}</td><td>${o['PAYMENT MODE']||''}</td><td>SAR ${parseFloat(o['ORDER AMOUNT']||0).toFixed(2)}</td><td>${o['SYSTEM DESTINATION CITY']||o['DESTINATION CITY']||''}</td><td>${(o['ORDER Date']||'').slice(0,10)}</td></tr>`).join('')}
+  </tbody></table>
+  <div class="footer">SARCO E-COM Dashboard — Confidential — ${new Date().toLocaleDateString()}</div>
+  </body></html>`;
+
+  const win=window.open('','_blank','width=1000,height=700');
+  win.document.write(html);
+  win.document.close();
+  win.onload=()=>{win.print()};
+}
+
+// ─── GOOGLE SHEETS LOADER ────────────────────────────────────
+function extractSheetId(url){
+  if(!url)return null;
+  const m=url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return m?m[1]:(url.length>20?null:url);
+}
+
+async function fetchTab(sheetId, tabName){
+  try{
+    const url=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+    const res=await fetch(url,{mode:'cors'});
+    if(!res.ok)return null;
+    const csv=await res.text();
+    if(!csv||csv.length<30)return null;
+    if(csv.trim().startsWith('<'))return null;
+    const parsed=Papa.parse(csv.trim(),{header:true,skipEmptyLines:true,dynamicTyping:false});
+    if(!parsed.data||parsed.data.length===0)return null;
+    return parsed.data;
+  }catch(e){
+    console.warn('fetchTab error for tab',tabName,e.message);
+    return null;
+  }
+}
+
+function toggleSheetMode(){
+  const mode=document.getElementById('sheetMode').value;
+  document.getElementById('singleSheetUI').style.display=mode==='single'?'flex':'none';
+  document.getElementById('multiSheetUI').style.display=mode==='multi'?'flex':'none';
+}
+
+async function loadSheet(){
+  const input=document.getElementById('sheetUrl').value.trim();
+  if(!input){alert('Please paste your Google Sheet URL first.');return;}
+  const id=extractSheetId(input);
+  if(!id){alert('Could not read the Sheet ID from that URL. Please copy the full URL from your browser.');return;}
+  setSB('loading','Connecting…');
+  const tabMap={
+    'Match KSA - Omniful':'match_ksa_ops',
+    'Match UAE - Omniful':'match_uae_ops',
+    'Salfa - Omniful':'salfa_ops',
+    'Match KSA - Salla Orders':'match_ksa_orders',
+    'Match UAE - Salla Orders':'match_uae_orders',
+    'Salfa - Salla Orders':'salfa_orders',
+    'Match KSA - Salla Products':'match_ksa_products',
+    'Match UAE - Salla Products':'match_uae_products',
+    'Salfa - Salla Products':'salfa_products'
+  };
+  let loaded=0,errors=[];
+  for(const[tab,brandKey]of Object.entries(tabMap)){
+    try{
+      const data=await fetchTab(id,tab);
+      if(!data){errors.push(tab);continue;}
+      // Route data to correct brand bucket
+      if(brandKey.endsWith('_ops')){
+        const bk=brandKey.replace('_ops','');
+        if(!RAW[bk])RAW[bk]={ops:[],orders:[],products:[]};
+        RAW[bk].ops=data;
+      } else if(brandKey.endsWith('_orders')){
+        const bk=brandKey.replace('_orders','');
+        if(!RAW[bk])RAW[bk]={ops:[],orders:[],products:[]};
+        RAW[bk].orders=data;
+      } else if(brandKey.endsWith('_products')){
+        const bk=brandKey.replace('_products','');
+        if(!RAW[bk])RAW[bk]={ops:[],orders:[],products:[]};
+        RAW[bk].products=data;
+      }
+      loaded++;
+    }catch(e){errors.push(tab+': '+e.message);}
+  }
+  if(!loaded){
+    setSB('err','Load failed');
+    alert('❌ Failed to load data\n\n3 things to check:\n\n1️⃣  SHARING: Open your Google Sheet → File → Share → "Anyone with the link" → Viewer (not just editor)\n\n2️⃣  TAB NAMES must be exactly:\n   • Match KSA\n   • Match UAE\n   • Salfa\n(capital letters and spaces matter)\n\n3️⃣  URL: Copy the full URL from your browser address bar\n\nIf problem continues, try: File → Publish to web → Entire document → CSV → Copy link');
+    return;
+  }
+  const skipped=errors.length?` (${errors.length} tabs not found: ${errors.join(', ')})`:' ';
+  setSB('ok',loaded+' tabs loaded'+skipped);
+  document.getElementById('lastUpdated').textContent='Updated '+new Date().toLocaleTimeString();
+  setQuickDate('30');
+  populateFilters(getOrders('all'));
+}
+
+async function loadMultiSheets(){
+  const inputs=document.querySelectorAll('.multi-url');
+  setSB('loading','Loading sheets…');
+  let loaded=0,errors=[];
+  for(const input of inputs){
+    const brand=input.dataset.brand;
+    const url=input.value.trim();
+    if(!url)continue;
+    const id=extractSheetId(url);
+    if(!id){errors.push(brand+': invalid URL');continue;}
+    try{
+      if(brand==='sku'){
+        // SKU file — read first tab
+        const data=await fetchTab(id,'SKU')||await fetchTab(id,'Sheet1')||await fetchTab(id,'Feuille1');
+        if(data){
+          Object.keys(BRAND_LABELS).filter(k=>k!=='all').forEach(bk=>{if(!RAW[bk])RAW[bk]={orders:[],skus:[]};RAW[bk].skus=data});
+          loaded++;
+        } else errors.push('SKU: tab not found');
+      } else {
+        // Try tab named after brand, then Sheet1, then first sheet
+        const tabName={'match_ksa':'Match KSA','match_uae':'Match UAE','salfa':'Salfa'}[brand];
+        const data=await fetchTab(id,tabName)||await fetchTab(id,'Orders')||await fetchTab(id,'Sheet1')||await fetchTab(id,'Data');
+        if(data){
+          if(!RAW[brand])RAW[brand]={orders:[],skus:[]};
+          RAW[brand].orders=data;
+          loaded++;
+        } else errors.push(brand+': could not read sheet');
+      }
+    }catch(e){errors.push(brand+': '+e.message);}
+  }
+  if(!loaded){setSB('err','Load failed — check sharing');alert('No sheets loaded.\nErrors: '+errors.join('\n'));return;}
+  setSB('ok',loaded+' sheets loaded');
+  document.getElementById('lastUpdated').textContent='Updated '+new Date().toLocaleTimeString();
+  setQuickDate('30');
+  populateFilters(getOrders('all'));
+}
+
+function setSB(state,msg){
+  const el=document.getElementById('statusBadge');
+  el.className='status-badge sb-'+state;el.textContent=msg;
+}
+
+// ─── DEMO DATA ───────────────────────────────────────────────
+function loadDemo(){
+  const brands=['match_ksa','match_uae','salfa'];
+  const couriers=['Aramex','SMSA','DHL','Naqel','J&T Express'];
+  const cities=['Riyadh','Jeddah','Dammam','Mecca','Medina','Khobar','Taif','Tabuk','Abha','Najran','Hail','Buraidah'];
+  const statuses=[['Delivered',60],['Returned',14],['Cancelled',10],['Shipped',10],['Out for Delivery',6]];
+  const pays=['COD','Credit Card','Apple Pay','BNPL','Mada'];
+  const reasons=['Customer request','Wrong item','Duplicate order','Price issue','Address not found','Product unavailable'];
+  const skuDefs={
+    match_ksa:[['MK-OUD-001','Oud Noir 100ml','Perfumes',299],['MK-AMB-002','Amber Royale 50ml','Perfumes',199],['MK-MUS-003','White Musk 75ml','Perfumes',149],['MK-AFR-001','Oud Air Fresh 300ml','Air Fresheners',89],['MK-SOL-001','Solid Musk Tin','Solid Perfumes',69],['MK-BOX-001','Royal Gift Box','Boxes',499],['MK-BEA-001','Body Lotion 200ml','Beauty',119],['MK-CIT-002','Citrus Splash 50ml','Perfumes',129]],
+    match_uae:[['MU-OUD-001','Dubai Oud 100ml','Perfumes',320],['MU-FLR-002','Floral Bouquet 75ml','Perfumes',220],['MU-AFR-001','Jasmine Mist 250ml','Air Fresheners',95],['MU-SOL-001','Solid Amber Tin','Solid Perfumes',75],['MU-BOX-001','Luxury Gift Set','Boxes',550]],
+    salfa:[['SL-TRD-001','Traditional Oud 100ml','Perfumes',249],['SL-MIX-002','Heritage Blend 75ml','Perfumes',199],['SL-GFT-001','Heritage Gift Box','Boxes',399],['SL-AFR-001','Bakhoor Freshener','Air Fresheners',79],['SL-SOL-001','Heritage Solid Musk','Solid Perfumes',59]]
+  };
+  const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  const pick=arr=>arr[rand(0,arr.length-1)];
+  const wStatus=()=>{let r=Math.random()*100,cum=0;for(const[s,w]of statuses){cum+=w;if(r<cum)return s;}return 'Delivered'};
+  brands.forEach(bk=>{
+    const n=rand(400,900);const orders=[];
+    for(let i=0;i<n;i++){
+      const st=wStatus();const baseDate=new Date(2025,0,rand(1,365));
+      orders.push({
+        'ORDER ID':'ORD-'+bk.slice(0,2).toUpperCase()+String(i+1000).padStart(6,'0'),
+        'ORDER REFERENCE':'REF-'+rand(100000,999999),
+        'AWB NUMBER':'AWB'+rand(1000000,9999999),
+        'ORDER STATUS':st,
+        'DELIVERY STATUS':st==='Delivered'?'Delivered':st==='Returned'?'Returned':'In Transit',
+        'RETURN STATUS':st==='Returned'?'Returned':'',
+        'COURIER PARTNER':pick(couriers),
+        'PAYMENT STATUS':'Paid',
+        'PAYMENT MODE':pick(pays),
+        'ORDER AMOUNT':rand(80,700),
+        'SHIPPING COST':rand(15,45),
+        'COD FEE':0,
+        'TOTAL ORDERED QUANTITY':rand(1,5),
+        'TOTAL SKUS':rand(1,3),
+        'ORDER Date':baseDate.toISOString().slice(0,10),
+        'SALES CHANNEL CREATED AT':baseDate.toISOString(),
+        'ORDER CANCELLATION REASON':st==='Cancelled'?pick(reasons):'',
+        'DESTINATION CITY':pick(cities),
+        'SYSTEM DESTINATION CITY':pick(cities),
+        'SHIPMENT WEIGHT':(rand(100,3000)/1000).toFixed(3),
+        'SELLER NAME':BRAND_LABELS[bk],
+        'SELLER CODE':bk.toUpperCase()
+      });
+    }
+    const skuRows=[];
+    (skuDefs[bk]||[]).forEach(([sku,name,cat,price])=>{
+      const qty=rand(50,600);
+      skuRows.push({'Main Sku':sku,'Item SKU':sku,'Item Name':name,'Category':cat,'Item Selling Price':price,' TTL Qty Sold ':qty,' TTL_gross_sales ':qty*price,' total_discount ':qty*price*.06,' total_tax ':qty*price*.15,' net_sale ':qty*price*.79,' total_sale':qty*price});
+    });
+    RAW[bk]={ops:orders,orders:orders,products:skuRows};
+  });
+  setSB('demo','Demo data');
+  populateFilters(getOrders('all'));
+  setQuickDate('30');
+}
+
+// ─── INIT ────────────────────────────────────────────────────
+
+function showUploadPanel(){
+  const p=document.getElementById('uploadPanel');
+  p.style.display=p.style.display==='none'?'flex':'none';
+}
+
+async function uploadOmniful(){
+  const file=document.getElementById('omni_file').files[0];
+  const brand=document.getElementById('omni_brand').value;
+  if(!file){alert('Please select a file first');return;}
+  const table=TABLE_MAP[brand]?.ops;
+  if(!table){alert('No Omniful table for '+brand);return;}
+  setSB('loading','Reading file…');
+  const text=await readFileAsText(file);
+  const uploaded=await uploadCSVToSupabase(text,table,OMNIFUL_MAP,brand);
+  if(uploaded>0){
+    setSB('ok',uploaded.toLocaleString()+' rows uploaded to '+table);
+    await loadFromSupabase(brand);
+  }
+}
+
+async function uploadSallaOrders(){
+  const file=document.getElementById('salla_orders_file').files[0];
+  const brand=document.getElementById('salla_orders_brand').value;
+  if(!file){alert('Please select a file first');return;}
+  const table=TABLE_MAP[brand]?.orders;
+  if(!table){alert('No orders table for '+brand);return;}
+  setSB('loading','Reading file…');
+  const text=await readFileAsText(file);
+  const uploaded=await uploadCSVToSupabase(text,table,SALLA_MAP,brand);
+  if(uploaded>0){
+    setSB('ok',uploaded.toLocaleString()+' rows uploaded to '+table);
+    await loadFromSupabase(brand);
+  }
+}
+
+async function uploadSallaProducts(){
+  const file=document.getElementById('salla_prod_file').files[0];
+  const brand=document.getElementById('salla_prod_brand').value;
+  if(!file){alert('Please select a file first');return;}
+  const table=TABLE_MAP[brand]?.products;
+  if(!table){alert('No products table for '+brand);return;}
+  setSB('loading','Reading file…');
+  const text=await readFileAsText(file);
+  const uploaded=await uploadCSVToSupabase(text,table,PRODUCTS_MAP,brand);
+  if(uploaded>0){
+    setSB('ok',uploaded.toLocaleString()+' rows uploaded to '+table);
+    await loadFromSupabase(brand);
+  }
+}
+
+function readFileAsText(file){
+  return new Promise((resolve,reject)=>{
+    if(file.name.endsWith('.csv')){
+      const r=new FileReader();
+      r.onload=e=>resolve(e.target.result);
+      r.onerror=reject;
+      r.readAsText(file,'UTF-8');
+    } else {
+      // Excel: use SheetJS if available, else warn
+      const r=new FileReader();
+      r.onload=e=>{
+        try{
+          if(window.XLSX){
+            const wb=XLSX.read(e.target.result,{type:'array'});
+            const ws=wb.Sheets[wb.SheetNames[0]];
+            const csv=XLSX.utils.sheet_to_csv(ws);
+            resolve(csv);
+          } else {
+            reject(new Error('Please convert Excel to CSV first (File → Save As → CSV)'));
+          }
+        }catch(err){reject(err);}
+      };
+      r.onerror=reject;
+      r.readAsArrayBuffer(file);
+    }
+  });
+}
+
+async function loadSelectedBrand(){
+  const brand=document.getElementById('loadBrandSelect').value;
+  if(brand==='all') await loadAllFromSupabase();
+  else await loadFromSupabase(brand);
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('lastUpdated').textContent='';
+  initSupabase();
+  loadDemo();
+});
+</script>
+</body>
+</html>
